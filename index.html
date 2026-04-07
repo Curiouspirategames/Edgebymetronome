@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The Metronome Edger</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+:root{
+  --bg:#0a0d14;--surf:#111827;--surf2:#1a2235;--border:#2a3a55;
+  --accent:#38bdf8;--accent2:#818cf8;--gold:#fbbf24;--red:#f87171;
+  --green:#34d399;--text:#e2eaf8;--muted:#6b82a8;--glow:rgba(56,189,248,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Crimson Text',Georgia,serif;overflow-x:hidden;}
+body{background-image:
+  radial-gradient(ellipse 70% 40% at 50% 0%,rgba(56,189,248,.08) 0%,transparent 70%),
+  radial-gradient(ellipse 50% 30% at 90% 90%,rgba(129,140,248,.06) 0%,transparent 60%);
+  min-height:100vh;}
+
+.screen{display:none;min-height:100vh;padding:18px 15px 60px;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+
+.page-title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.4rem,5vw,2.5rem);
+  letter-spacing:.12em;text-align:center;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 60%,#c7d2fe 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 18px var(--glow));margin-bottom:4px;}
+.page-sub{font-style:italic;color:var(--muted);font-size:1rem;
+  letter-spacing:.04em;margin-bottom:20px;text-align:center;}
+
+.card{background:var(--surf);border:1px solid var(--border);border-radius:14px;
+  padding:16px 15px;width:100%;max-width:480px;margin-bottom:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.03);}
+.card-title{font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.card-desc{font-size:.96rem;color:var(--muted);font-style:italic;line-height:1.5;margin-bottom:10px;}
+
+label{display:block;font-size:1.05rem;color:var(--text);margin-bottom:4px;}
+label small{color:var(--muted);font-size:.85rem;}
+.rv{font-size:1.05rem;color:var(--gold);font-weight:600;}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--surf2);
+  border-radius:3px;outline:none;margin:6px 0 2px;border:1px solid var(--border);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  border-radius:50%;background:var(--accent);cursor:pointer;
+  box-shadow:0 0 10px var(--glow);border:2px solid var(--bg);}
+input[type=range]::-webkit-slider-runnable-track{
+  background:linear-gradient(to right,var(--accent) var(--pct,0%),var(--surf2) var(--pct,0%));
+  height:6px;border-radius:3px;}
+.rr{display:flex;justify-content:space-between;margin-top:1px;}
+.rr span{font-size:.83rem;color:var(--muted);}
+
+.trow{display:flex;align-items:center;gap:11px;}
+.tog{width:50px;height:26px;background:var(--surf2);border:2px solid var(--border);
+  border-radius:13px;cursor:pointer;position:relative;
+  transition:background .25s,border-color .25s;flex-shrink:0;}
+.tog::after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;
+  background:var(--muted);border-radius:50%;transition:transform .25s,background .25s;}
+.tog.on{background:rgba(56,189,248,.15);border-color:var(--accent);}
+.tog.on::after{transform:translateX(24px);background:var(--accent);}
+.tlbl{font-size:1.05rem;color:var(--text);}
+.nrow{display:flex;align-items:center;gap:11px;margin-top:7px;}
+.nb{width:40px;height:40px;border:2px solid var(--border);border-radius:8px;
+  background:var(--surf2);color:var(--accent);font-size:1.5rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.nb:active{background:rgba(56,189,248,.15);}
+.nd{font-family:'Cinzel',serif;font-size:1.5rem;color:var(--gold);min-width:44px;text-align:center;}
+.xcol{overflow:hidden;transition:max-height .35s ease,opacity .3s ease;}
+.xcol.closed{max-height:0;opacity:0;pointer-events:none;}
+.xcol.open{max-height:900px;opacity:1;}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px;}
+.pb{padding:12px 8px;border:2px solid var(--border);border-radius:12px;
+  background:var(--surf2);cursor:pointer;text-align:center;transition:all .2s;
+  display:flex;flex-direction:column;gap:3px;}
+.pb .pn{font-family:'Cinzel',serif;font-size:.76rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);}
+.pb .pd{font-size:.84rem;font-style:italic;color:var(--muted);line-height:1.3;}
+.pb.sel{border-color:var(--accent);background:rgba(56,189,248,.08);}
+.pb.sel .pn{color:var(--accent);}.pb.sel .pd{color:var(--accent2);}
+
+.drow{display:flex;gap:8px;margin-top:4px;}
+.db{flex:1;padding:9px 4px;border:2px solid var(--border);border-radius:10px;
+  background:var(--surf2);font-family:'Cinzel',serif;font-size:.74rem;
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  color:var(--muted);text-align:center;transition:all .2s;}
+.db.sel{border-color:var(--gold);color:var(--gold);background:rgba(251,191,36,.08);}
+
+.sprow{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
+.spb{flex:1;min-width:70px;padding:8px 5px;border:2px solid var(--border);border-radius:10px;
+  background:var(--surf2);font-family:'Cinzel',serif;font-size:.7rem;
+  letter-spacing:.07em;text-transform:uppercase;cursor:pointer;
+  color:var(--muted);text-align:center;transition:all .2s;}
+.spb.sel{border-color:var(--accent2);color:var(--accent2);background:rgba(129,140,248,.08);}
+
+.btn{width:100%;max-width:480px;padding:15px;border:none;border-radius:12px;
+  font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.1em;cursor:pointer;
+  transition:all .18s;margin-bottom:9px;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 20px var(--glow);}
+.btn-secondary{background:var(--surf2);border:2px solid var(--border);color:var(--text);}
+.btn-ghost{background:transparent;border:2px solid var(--border);color:var(--muted);
+  font-family:'Crimson Text',serif;letter-spacing:.04em;}
+.btn-gold{background:rgba(251,191,36,.1);border:2px solid rgba(251,191,36,.6);
+  color:var(--gold);font-size:1.2rem;letter-spacing:.08em;padding:17px;}
+.btn-danger{background:rgba(248,113,113,.1);border:2px solid rgba(248,113,113,.5);
+  color:var(--red);font-family:'Crimson Text',serif;font-size:1.1rem;letter-spacing:.03em;}
+.btn-warn{background:rgba(251,191,36,.12);border:2px solid rgba(251,191,36,.55);
+  color:var(--gold);font-family:'Crimson Text',serif;font-size:1.05rem;letter-spacing:.03em;}
+
+.play-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;
+  padding:4px 15px 15px;width:100%;max-width:480px;margin-bottom:12px;}
+.msect{display:flex;flex-direction:column;align-items:center;
+  padding:16px 0 12px;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);margin-bottom:12px;width:100%;}
+.rw{position:relative;width:140px;height:140px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.ro{position:absolute;inset:0;border-radius:50%;border:2px solid var(--border);}
+.rring{position:absolute;border-radius:50%;border:2px solid var(--accent);
+  opacity:0;width:18px;height:18px;pointer-events:none;}
+.rring.fire{animation:rExp var(--bd,600ms) ease-out forwards;}
+@keyframes rExp{
+  0%{width:18px;height:18px;opacity:1;border-color:var(--accent);border-width:3px;}
+  70%{opacity:.5;}
+  100%{width:138px;height:138px;opacity:0;border-color:var(--accent2);border-width:1px;}}
+.rc{width:18px;height:18px;border-radius:50%;background:var(--accent);
+  position:relative;z-index:1;box-shadow:0 0 14px var(--glow);}
+.rc.pop{animation:cPop .1s ease-out forwards;}
+@keyframes cPop{0%{transform:scale(1);}50%{transform:scale(1.8);}100%{transform:scale(1);}}
+.mbrow{display:flex;align-items:baseline;gap:5px;margin-bottom:3px;}
+.mb{font-size:2.4rem;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1;}
+.mbu{font-size:.52rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;}
+.blbl{font-size:.48rem;letter-spacing:.35em;color:var(--accent2);
+  text-transform:uppercase;opacity:0;min-height:14px;}
+.blbl.flash{opacity:1;}
+.plbl{font-family:'Crimson Text',serif;font-style:italic;font-size:1rem;
+  color:var(--muted);margin-top:5px;text-align:center;min-height:1.4em;}
+.mbtn{padding:7px 18px;border:1px solid var(--border);border-radius:8px;
+  background:var(--surf2);color:var(--muted);font-family:'Cinzel',serif;
+  font-size:.72rem;letter-spacing:.12em;cursor:pointer;text-transform:uppercase;margin-top:8px;}
+.mbtn.muted{color:var(--red);border-color:rgba(248,113,113,.4);}
+
+.st-wrap{width:100%;padding:10px 0 4px;}
+.st-track{width:100%;height:8px;background:var(--surf2);border-radius:4px;overflow:hidden;}
+.st-fill{height:100%;background:linear-gradient(to right,var(--accent),var(--accent2));
+  border-radius:4px;transition:width .8s linear;width:100%;}
+.st-time{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold);
+  text-align:center;letter-spacing:.06em;margin-top:4px;}
+
+.pipr{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+  margin-bottom:12px;width:100%;max-width:480px;}
+.ep{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);
+  background:var(--surf2);transition:all .3s;}
+.ep.done{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px var(--glow);}
+.ep.over{background:var(--red);border-color:var(--red);}
+
+.cio{position:fixed;inset:0;background:rgba(10,13,20,.93);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+.cio.show{opacity:1;pointer-events:all;}
+.cit{font-family:'Cinzel',serif;font-size:1.15rem;letter-spacing:.12em;
+  color:var(--text);text-align:center;margin-bottom:5px;}
+.cis{color:var(--muted);font-style:italic;font-size:1rem;text-align:center;
+  margin-bottom:22px;line-height:1.5;}
+.cibs{display:flex;gap:16px;justify-content:center;}
+.cib{width:76px;height:76px;border-radius:50%;font-size:2.1rem;cursor:pointer;
+  border:3px solid transparent;display:flex;align-items:center;justify-content:center;
+  transition:all .18s;}
+.cib:active{transform:scale(.9);}
+.ci-g{background:rgba(52,211,153,.15);border-color:var(--green);}
+.ci-y{background:rgba(251,191,36,.15);border-color:var(--gold);}
+.ci-r{background:rgba(248,113,113,.15);border-color:var(--red);}
+.cilbl{display:flex;gap:16px;justify-content:center;margin-top:7px;}
+.cilbl span{width:76px;text-align:center;font-size:.83rem;color:var(--muted);}
+.ci-mode{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent2);margin-bottom:14px;}
+
+.big-n{font-family:'Cinzel',serif;font-size:clamp(3.5rem,15vw,6rem);
+  color:var(--gold);text-align:center;line-height:1;
+  filter:drop-shadow(0 0 24px rgba(251,191,36,.45));}
+.break-lbl{font-family:'Cinzel',serif;letter-spacing:.14em;color:var(--muted);font-size:.84rem;text-align:center;}
+
+.ss{display:flex;justify-content:space-between;align-items:baseline;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:1.05rem;}
+.ss:last-child{border-bottom:none;}
+.ss .l{color:var(--muted);}.ss .v{font-weight:600;}
+.ca{color:var(--accent);}.cg{color:var(--gold);}.cr{color:var(--red);}.cgr{color:var(--green);}
+.stbl{width:100%;border-collapse:collapse;font-size:.92rem;}
+.stbl th{color:var(--accent);font-family:'Cinzel',serif;font-size:.67rem;
+  letter-spacing:.11em;text-transform:uppercase;padding:5px 3px;text-align:left;
+  border-bottom:1px solid var(--border);}
+.stbl td{padding:6px 3px;color:var(--text);border-bottom:1px solid rgba(42,58,85,.4);}
+.stbl tr:last-child td{border-bottom:none;}
+.sbox{background:var(--surf2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-family:'Crimson Text',serif;font-size:.96rem;line-height:1.6;
+  color:var(--text);white-space:pre-wrap;word-break:break-word;user-select:all;margin-bottom:10px;}
+.abadge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;
+  border:1px solid var(--accent2);border-radius:20px;background:rgba(129,140,248,.1);
+  font-size:.78rem;color:var(--accent2);font-family:'Cinzel',serif;
+  letter-spacing:.08em;margin-bottom:8px;}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#000;padding:10px 24px;border-radius:24px;
+  font-family:'Cinzel',serif;font-size:.9rem;letter-spacing:.1em;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;}
+#toast.show{opacity:1;}
+.div{border:none;border-top:1px solid var(--border);margin:9px 0;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt20{margin-top:20px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ WELCOME ══════════ -->
+<div id="scrWelcome" class="screen active">
+  <div class="page-title">THE METRONOME EDGER</div>
+  <div class="page-sub">build your edge, one wave at a time</div>
+
+  <div class="card">
+    <div class="card-title">Pattern</div>
+    <div class="pgrid">
+      <button class="pb sel" onclick="selP('waves',this)">
+        <span class="pn">Waves</span><span class="pd">Oscillating climbs, each crest higher</span>
+      </button>
+      <button class="pb" onclick="selP('slowburn',this)">
+        <span class="pn">Slow Burn</span><span class="pd">Long gradual staircase — patience is key</span>
+      </button>
+      <button class="pb" onclick="selP('pulse',this)">
+        <span class="pn">Pulse</span><span class="pd">Fast bursts then drops — ceiling rises each cycle</span>
+      </button>
+      <button class="pb" onclick="selP('erratic',this)">
+        <span class="pn">Erratic</span><span class="pd">Random speeds, random durations</span>
+      </button>
+      <button class="pb" onclick="selP('abuild',this)">
+        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge — press ⚡ when close</span>
+      </button>
+      <button class="pb" onclick="selP('asustain',this)">
+        <span class="pn">Adaptive: Sustain</span><span class="pd">Keeps you right at the edge — press ⚡ to back off</span>
+      </button>
+    </div>
+    <div id="pInfo" style="font-size:.93rem;color:var(--muted);font-style:italic;line-height:1.5;min-height:2em;"></div>
+  </div>
+
+  <!-- Difficulty — hidden for adaptive modes -->
+  <div class="card" id="diffCard">
+    <div class="card-title">Difficulty</div>
+    <div class="drow">
+      <button class="db" onclick="selD('easy',this)">Easy</button>
+      <button class="db sel" onclick="selD('medium',this)">Medium</button>
+      <button class="db" onclick="selD('hard',this)">Hard</button>
+    </div>
+    <div id="dInfo" style="font-size:.88rem;color:var(--muted);font-style:italic;margin-top:8px;min-height:1.2em;"></div>
+  </div>
+
+  <!-- Sustain sub-pattern — only for asustain -->
+  <div class="xcol closed" id="sustainPatCard">
+    <div class="card">
+      <div class="card-title">Sustain Pattern</div>
+      <p class="card-desc">Which pattern plays during the sustain session.</p>
+      <div class="sprow">
+        <button class="spb sel" onclick="selSP('waves',this)">Waves</button>
+        <button class="spb" onclick="selSP('slowburn',this)">Slow Burn</button>
+        <button class="spb" onclick="selSP('pulse',this)">Pulse</button>
+        <button class="spb" onclick="selSP('erratic',this)">Erratic</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sustain duration — only for asustain -->
+  <div class="xcol closed" id="sustainDurCard">
+    <div class="card">
+      <div class="card-title">Session Duration</div>
+      <p class="card-desc">How long to keep you at the edge.</p>
+      <div class="nrow">
+        <button class="nb" onclick="adj('sMins',-1,1,60)">−</button>
+        <div class="nd" id="sMins">10</div>
+        <button class="nb" onclick="adj('sMins',1,1,60)">+</button>
+      </div>
+      <div style="font-size:.88rem;color:var(--muted);margin-top:5px;">minutes</div>
+    </div>
+  </div>
+
+  <!-- Speed range -->
+  <div class="card">
+    <div class="card-title">Speed Range (BPM)</div>
+    <p class="card-desc">Set automatically. Adjust to override.</p>
+    <label>Minimum &nbsp;<span class="rv" id="mnV">30</span> bpm</label>
+    <input type="range" id="mnS" min="10" max="100" value="30"
+      oninput="sSlider(this,'mnV',10,100);clampMax()">
+    <div class="rr"><span>10 bpm</span><span>100 bpm</span></div>
+    <label class="mt8">Maximum &nbsp;<span class="rv" id="mxV">90</span> bpm</label>
+    <input type="range" id="mxS" min="30" max="160" value="90"
+      oninput="sSlider(this,'mxV',30,160);clampMin()">
+    <div class="rr"><span>30 bpm</span><span>160 bpm</span></div>
+  </div>
+
+  <!-- Edges — hidden for asustain -->
+  <div class="card" id="edgesCard">
+    <div class="card-title">Number of Edges</div>
+    <div class="trow">
+      <div class="tog on" id="togOpen" onclick="togO()"></div>
+      <span class="tlbl">Open session — no target</span>
+    </div>
+    <div class="xcol closed" id="edgeW">
+      <hr class="div">
+      <label>Target edges</label>
+      <div class="nrow">
+        <button class="nb" onclick="adj('eC',-1,1,20)">−</button>
+        <div class="nd" id="eC">5</div>
+        <button class="nb" onclick="adj('eC',1,1,20)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Between edges — hidden for asustain -->
+  <div class="card" id="breakCard">
+    <div class="card-title">Between Edges</div>
+    <div class="trow">
+      <div class="tog" id="togAuto" onclick="togA()"></div>
+      <span class="tlbl" id="autoLbl">Manual — I'll press "Next Edge" myself</span>
+    </div>
+    <div class="xcol closed" id="breakW">
+      <hr class="div">
+      <label>Break duration (seconds)</label>
+      <div class="nrow">
+        <button class="nb" onclick="adj('bS',-10,10,300)">−</button>
+        <div class="nd" id="bS">30</div>
+        <button class="nb" onclick="adj('bS',10,10,300)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startSession()">Begin Session</button>
+</div>
+
+<!-- ══════════ PLAY ══════════ -->
+<div id="scrPlay" class="screen">
+  <div class="page-title" style="font-size:clamp(1.1rem,4vw,1.7rem);margin-bottom:3px;">THE METRONOME EDGER</div>
+  <div id="abadge" class="abadge" style="display:none;"></div>
+  <div class="pipr" id="pipR"></div>
+
+  <div class="play-card">
+    <div id="stWrap" style="display:none;" class="st-wrap">
+      <div class="st-track"><div class="st-fill" id="stFill"></div></div>
+      <div class="st-time" id="stTime">—</div>
+    </div>
+    <div class="msect">
+      <div class="rw">
+        <div class="ro"></div>
+        <div class="rring" id="rring"></div>
+        <div class="rc" id="rc"></div>
+      </div>
+      <div class="mbrow">
+        <div class="mb" id="mBpm">—</div>
+        <div class="mbu">bpm</div>
+      </div>
+      <div class="blbl" id="bLbl">BEAT</div>
+      <div class="plbl" id="pLbl"></div>
+      <button class="mbtn" id="muteBtn" onclick="togMute()">mute</button>
+    </div>
+  </div>
+
+  <!-- ⚡ I'm close — adaptive only, always visible -->
+  <button class="btn btn-warn" id="closeBtn" style="display:none;" onclick="playerClose()">
+    ⚡ I'm very close — about to go over
+  </button>
+  <button class="btn btn-gold" id="edgedBtn" onclick="playerEdged()">✦ I've Edged</button>
+  <button class="btn btn-danger" onclick="wentOver()">⚠ I went over the edge</button>
+  <button class="btn btn-ghost" onclick="endSession()">End Session</button>
+</div>
+
+<!-- ══════════ BREAK ══════════ -->
+<div id="scrBreak" class="screen">
+  <div class="page-title" style="font-size:clamp(1.1rem,4vw,1.7rem);margin-bottom:4px;">THE METRONOME EDGER</div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:480px;gap:13px;">
+    <p class="break-lbl" id="breakLbl">BREAK</p>
+    <div class="big-n" id="brkN">—</div>
+    <p style="font-size:1.1rem;font-style:italic;color:var(--muted);text-align:center;">
+      Rest. Let the sensation fade completely.
+    </p>
+    <button class="btn btn-secondary mt20" id="skipBtn" onclick="startNextEdge()">Next Edge</button>
+    <button class="btn btn-ghost" onclick="endSession()">End Session</button>
+  </div>
+</div>
+
+<!-- ══════════ SUMMARY ══════════ -->
+<div id="scrSummary" class="screen">
+  <div class="page-title" style="font-size:clamp(1.4rem,5vw,2.2rem);margin-bottom:4px;">Session Complete</div>
+  <div class="page-sub">here's how you did</div>
+  <div class="card" id="sumStats"></div>
+  <div class="card">
+    <div class="card-title">Edge Splits</div>
+    <table class="stbl" id="splitsT"></table>
+  </div>
+  <div class="card">
+    <div class="card-title">Share</div>
+    <div class="sbox" id="shareBox"></div>
+    <button class="btn btn-secondary" onclick="doCopy()">Copy to clipboard</button>
+  </div>
+  <button class="btn btn-primary" onclick="resetAll()">New Session</button>
+</div>
+
+<!-- ══════════ CHECK-IN OVERLAY ══════════ -->
+<div class="cio" id="ciO">
+  <div class="ci-mode" id="ciMode"></div>
+  <div class="cit">How close are you?</div>
+  <div class="cis" id="ciSub"></div>
+  <div class="cibs">
+    <button class="cib ci-g" onclick="ciR('far')">🟢</button>
+    <button class="cib ci-y" onclick="ciR('close')">🟡</button>
+    <button class="cib ci-r" onclick="ciR('edge')">🔴</button>
+  </div>
+  <div class="cilbl"><span>Far off</span><span>Getting close</span><span>Right there</span></div>
+</div>
+
+<div id="toast">Copied!</div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const CFG={
+  preset:'waves', diff:'medium', sustainPat:'waves',
+  minBpm:30, maxBpm:90,
+  openSession:true, targetEdges:5,
+  autoStart:false, breakSecs:30,
+  sustainMins:10,
+};
+
+const RANGES={
+  waves:    {easy:[25,70],  medium:[30,95],  hard:[35,130]},
+  slowburn: {easy:[22,65],  medium:[26,82],  hard:[30,100]},
+  pulse:    {easy:[30,80],  medium:[38,115], hard:[45,145]},
+  erratic:  {easy:[20,75],  medium:[25,110], hard:[30,150]},
+  abuild:   {easy:[28,80],  medium:[32,100], hard:[38,125]},
+  asustain: {easy:[28,75],  medium:[32,100], hard:[38,130]},
+};
+
+const PINFO={
+  waves:    'Ascending wave pairs — each crest higher than the last. The floor rises across your session.',
+  slowburn: 'One long staircase. Each step held 35–90 seconds. Patience is the whole point.',
+  pulse:    'Short fast bursts followed by a recovery drop. Each cycle the burst grows longer, the drop shorter.',
+  erratic:  'Fully random speeds for random durations. Different every edge. Unpredictable by design.',
+  abuild:   'Goal: get you to your edge. Starts moderate, adjusts from check-ins every ~90 seconds. Press ⚡ any time you\'re very close — it will hold the speed or push slightly harder to tip you over.',
+  asustain: 'Goal: keep you at the edge without going over. Set a timer and pick a pattern. Press ⚡ any time you\'re about to tip — it backs off immediately. Check-ins fine-tune the ceiling every ~90 seconds.',
+};
+const DINFO={
+  easy:  'Longer, gentler builds. More time to react.',
+  medium:'Balanced ramp and hold times.',
+  hard:  'Faster climbs, shorter holds, higher peaks.',
+};
+
+// ════════════════════════════════════════════
+// SESSION STATE
+// ════════════════════════════════════════════
+const G={
+  // metro (Daily Edge web-audio scheduler architecture)
+  metroToken:0, timerDone:false, schedulerActive:false,
+  audioCtx:null, muted:false,
+  nextBeatTime:0, schedulerTimerId:null, blockTimerId:null,
+  currentBpm:60, beatFlashId:null, blocks:[],
+  // session
+  edges:[], edgeStarts:[], currentEdge:0, sessionStart:null,
+  breakTimer:null, breakRemaining:0,
+  // adaptive
+  adFloor:0, adCeiling:0, ciTimer:null, lastCI:0, profile:null,
+  // sustain
+  sustainTimer:null, sustainRemaining:0, sustainTotal:0,
+};
+const LOOK=0.10, SCHIV=25;
+
+// ════════════════════════════════════════════
+// WELCOME UI
+// ════════════════════════════════════════════
+function selP(name,el){
+  CFG.preset=name;
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('pInfo').textContent=PINFO[name]||'';
+  const isAd=name==='abuild'||name==='asustain';
+  const isSus=name==='asustain';
+  document.getElementById('diffCard').style.display=isAd?'none':'';
+  document.getElementById('edgesCard').style.display=isSus?'none':'';
+  document.getElementById('breakCard').style.display=isSus?'none':'';
+  xCol('sustainPatCard',isSus);
+  xCol('sustainDurCard',isSus);
+  applyRanges();
+}
+function selD(d,el){
+  CFG.diff=d;
+  document.querySelectorAll('.db').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('dInfo').textContent=DINFO[d]||'';
+  applyRanges();
+}
+function selSP(p,el){
+  CFG.sustainPat=p;
+  document.querySelectorAll('.spb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function applyRanges(){
+  const k=CFG.preset in RANGES?CFG.preset:'waves';
+  // Adaptive modes don't use difficulty — default to medium range
+  const d=(CFG.preset==='abuild'||CFG.preset==='asustain')?'medium':(CFG.diff in RANGES[k]?CFG.diff:'medium');
+  const[mn,mx]=RANGES[k][d];
+  const me=document.getElementById('mnS'),xe=document.getElementById('mxS');
+  me.value=mn; sSlider(me,'mnV',10,100);
+  xe.value=mx; sSlider(xe,'mxV',30,160);
+}
+function sSlider(el,id,mn,mx){
+  document.getElementById(id).textContent=el.value;
+  el.style.setProperty('--pct',((el.value-mn)/(mx-mn)*100)+'%');
+}
+function clampMax(){
+  const mn=+document.getElementById('mnS').value,e=document.getElementById('mxS');
+  if(+e.value<mn+10){e.value=mn+10;sSlider(e,'mxV',30,160);}
+}
+function clampMin(){
+  const mx=+document.getElementById('mxS').value,e=document.getElementById('mnS');
+  if(+e.value>mx-10){e.value=mx-10;sSlider(e,'mnV',10,100);}
+}
+function togO(){
+  CFG.openSession=!CFG.openSession;
+  document.getElementById('togOpen').classList.toggle('on',CFG.openSession);
+  xCol('edgeW',!CFG.openSession);
+}
+function togA(){
+  CFG.autoStart=!CFG.autoStart;
+  document.getElementById('togAuto').classList.toggle('on',CFG.autoStart);
+  document.getElementById('autoLbl').textContent=CFG.autoStart
+    ?'Auto — starts after break timer':'Manual — I\'ll press "Next Edge" myself';
+  xCol('breakW',CFG.autoStart);
+}
+function xCol(id,open){
+  const e=document.getElementById(id);
+  e.classList.toggle('closed',!open);
+  e.classList.toggle('open',open);
+}
+function adj(id,d,mn,mx){
+  const e=document.getElementById(id);
+  e.textContent=Math.max(mn,Math.min(mx,+e.textContent+d));
+}
+
+// ════════════════════════════════════════════
+// AUDIO — exact Daily Edge web-audio scheduler
+// ════════════════════════════════════════════
+function getAC(){
+  if(!G.audioCtx)G.audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return G.audioCtx;
+}
+function resAC(){if(G.audioCtx&&G.audioCtx.state==='suspended')G.audioCtx.resume();}
+
+function schClick(t){
+  if(G.muted)return;
+  try{
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type='sine';o.frequency.value=700;
+    g.gain.setValueAtTime(0.22,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+    o.start(t);o.stop(t+0.07);
+  }catch(e){}
+}
+
+function schPulse(t,bpm,tok){
+  const ac=getAC(),delay=(t-ac.currentTime)*1000;
+  setTimeout(()=>{
+    if(tok!==G.metroToken||G.timerDone)return;
+    const r=document.getElementById('rring'),c=document.getElementById('rc');
+    if(!r||!c)return;
+    r.style.setProperty('--bd',Math.round(60000/bpm)+'ms');
+    r.classList.remove('fire');void r.offsetWidth;r.classList.add('fire');
+    c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');
+    const b=document.getElementById('bLbl');
+    if(b){b.classList.add('flash');clearTimeout(G.beatFlashId);
+      G.beatFlashId=setTimeout(()=>b&&b.classList.remove('flash'),80);}
+  },Math.max(0,delay));
+}
+
+function runSched(tok){
+  if(tok!==G.metroToken||!G.schedulerActive)return;
+  const ac=getAC(),spb=60/G.currentBpm;
+  while(G.nextBeatTime<ac.currentTime+LOOK){
+    schClick(G.nextBeatTime);
+    schPulse(G.nextBeatTime,G.currentBpm,tok);
+    G.nextBeatTime+=spb;
+  }
+  G.schedulerTimerId=setTimeout(()=>runSched(tok),SCHIV);
+}
+
+function startMetro(blocks){
+  // Increment token first — this kills any running scheduler/block chain
+  G.metroToken++;
+  G.timerDone=false;
+  G.schedulerActive=true;
+  G.blocks=blocks;
+  G.currentBpm=blocks[0].bpm;
+  G.nextBeatTime=getAC().currentTime+0.05;
+  runSched(G.metroToken);
+  schBlock(0,G.metroToken);
+}
+
+function schBlock(idx,tok){
+  if(tok!==G.metroToken||G.timerDone)return;
+  const b=G.blocks[idx%G.blocks.length];
+  G.currentBpm=b.bpm;
+  const bpmEl=document.getElementById('mBpm');
+  const pEl=document.getElementById('pLbl');
+  if(bpmEl)bpmEl.textContent=Math.round(b.bpm);
+  if(pEl)pEl.textContent=b.phase||'';
+  if(G.blockTimerId)clearTimeout(G.blockTimerId);
+  G.blockTimerId=setTimeout(()=>schBlock(idx+1,tok),b.secs*1000);
+}
+
+function stopMetro(){
+  G.metroToken++;
+  G.timerDone=true;
+  G.schedulerActive=false;
+  if(G.blockTimerId){clearTimeout(G.blockTimerId);G.blockTimerId=null;}
+  if(G.schedulerTimerId){clearTimeout(G.schedulerTimerId);G.schedulerTimerId=null;}
+}
+
+function togMute(){
+  G.muted=!G.muted;
+  const b=document.getElementById('muteBtn');
+  b.textContent=G.muted?'unmute':'mute';
+  b.classList.toggle('muted',G.muted);
+  if(!G.muted)resAC();
+}
+
+// ════════════════════════════════════════════
+// PATTERNS
+// All pattern generators receive (edgeNum, lo, hi) explicitly
+// so adaptive modes can pass their adjusted floor/ceiling.
+// ════════════════════════════════════════════
+function snap(b){return Math.round(b);}
+function rnd(a,b){return a+Math.random()*(b-a);}
+const DT={easy:{bs:1.6,hs:1.5},medium:{bs:1.0,hs:1.0},hard:{bs:0.6,hs:0.65}};
+function dt(){return DT[CFG.diff]||DT.medium;}
+
+function pWaves(edgeNum,lo,hi){
+  const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/8);
+  const floor=lo+rng*0.32*prog, peak=lo+rng*0.94, t=dt();
+  const ws=Math.round(22*t.bs), ds=Math.round(16*t.bs), hs=Math.round(28*t.hs);
+  const bl=[];
+  for(let w=0;w<5;w++){
+    const f=(w+1)/5;
+    const crest=floor+(peak-floor)*f;
+    const trough=floor+(crest-floor)*0.28;
+    bl.push({bpm:snap(crest),secs:ws,phase:w<2?'building…':'rising…'});
+    if(w<4) bl.push({bpm:snap(trough),secs:ds,phase:'easing…'});
+  }
+  bl.push({bpm:snap(peak),secs:hs,phase:'at peak — hold the pace'});
+  return bl;
+}
+
+function pSlowBurn(edgeNum,lo,hi){
+  const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/6);
+  const floor=lo+rng*0.22*prog, peak=lo+rng*0.90, t=dt();
+  const bl=[];
+  for(let s=0;s<6;s++){
+    const f=(s+1)/6, e=f*f*(3-2*f);
+    bl.push({bpm:snap(floor+(peak-floor)*e),
+      secs:Math.max(28,Math.round((80-s*8)*t.bs)),
+      phase:f<0.4?'slowly building…':f<0.72?'rising…':'closing in…'});
+  }
+  bl.push({bpm:snap(peak),secs:Math.round(55*t.hs),phase:'at peak — stay here'});
+  return bl;
+}
+
+function pPulse(edgeNum,lo,hi){
+  const rng=hi-lo, t=dt();
+  const baseLow=lo+rng*0.18, peakHi=lo+rng*0.92;
+  const bl=[];
+  bl.push({bpm:snap(lo+rng*0.28),secs:Math.round(22*t.bs),phase:'warming up…'});
+  for(let c=0;c<4;c++){
+    const f=(c+1)/4;
+    bl.push({bpm:snap(lo+rng*(0.52+f*0.40)),secs:Math.max(12,Math.round((18+c*5)*t.bs)),phase:'burst…'});
+    if(c<3) bl.push({bpm:snap(baseLow+rng*0.04*c),secs:Math.max(18,Math.round((42-c*5)*t.bs)),phase:'recover…'});
+  }
+  bl.push({bpm:snap(peakHi),secs:Math.round(28*t.hs),phase:'peak burst — hold on'});
+  bl.push({bpm:snap(baseLow+rng*0.14),secs:Math.round(22*t.bs),phase:'recover…'});
+  return bl;
+}
+
+function pErratic(lo,hi){
+  const mn=CFG.diff==='hard'?15:CFG.diff==='easy'?40:25;
+  const mx=CFG.diff==='hard'?75:CFG.diff==='easy'?130:100;
+  const bl=[];
+  for(let i=0;i<8+Math.floor(Math.random()*5);i++)
+    bl.push({bpm:snap(rnd(lo,hi)),secs:Math.round(rnd(mn,mx)),phase:'?'});
+  return bl;
+}
+
+// Returns a full block array for the given preset/adaptive settings.
+// lo/hi are always passed explicitly so adaptive modes use their adjusted range.
+function buildBlocks(preset,edgeNum,lo,hi){
+  // Safety clamp: lo must be < hi
+  lo=Math.max(10,lo); hi=Math.min(160,hi);
+  if(hi<=lo+5)hi=lo+20;
+  switch(preset){
+    case 'waves':    return pWaves(edgeNum,lo,hi);
+    case 'slowburn': return pSlowBurn(edgeNum,lo,hi);
+    case 'pulse':    return pPulse(edgeNum,lo,hi);
+    case 'erratic':  return pErratic(lo,hi);
+    default:         return pWaves(edgeNum,lo,hi);
+  }
+}
+
+// Main entry — resolves preset and adaptive ranges, then builds blocks
+function getBlocks(edgeNum){
+  const preset=CFG.preset;
+  if(preset==='abuild'){
+    // Goal: reach the edge. Use adaptive ceiling/floor, waves pattern
+    return buildBlocks('waves',edgeNum,G.adFloor,G.adCeiling);
+  }
+  if(preset==='asustain'){
+    // Goal: sustain at edge. Use adaptive ceiling/floor, chosen sub-pattern
+    return buildBlocks(CFG.sustainPat,edgeNum,G.adFloor,G.adCeiling);
+  }
+  // Standard presets use CFG bpm range
+  return buildBlocks(preset,edgeNum,CFG.minBpm,CFG.maxBpm);
+}
+
+// ════════════════════════════════════════════
+// ADAPTIVE PROFILE
+// ════════════════════════════════════════════
+const PK='tme_profile_v2';
+function loadProf(){
+  try{
+    const r=localStorage.getItem(PK);
+    G.profile=r?JSON.parse(r):{edgeBpm:null,sessions:0};
+  }catch(e){G.profile={edgeBpm:null,sessions:0};}
+  // Initialise adaptive range from profile knowledge
+  if(G.profile.edgeBpm){
+    const spread=Math.max(20,(CFG.maxBpm-CFG.minBpm)*0.55);
+    G.adFloor=Math.max(CFG.minBpm,G.profile.edgeBpm-spread);
+    G.adCeiling=Math.min(CFG.maxBpm,G.profile.edgeBpm+8);
+  }else{
+    G.adFloor=CFG.minBpm;
+    G.adCeiling=CFG.maxBpm;
+  }
+}
+function saveProf(){
+  try{localStorage.setItem(PK,JSON.stringify(G.profile));}catch(e){}
+}
+
+// ── CHECK-INS ─────────────────────────────────
+// Reverted to ~90s first, ~75s subsequent — less disruptive.
+// "I'm close" button handles the immediate response instead.
+function schCI(){
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  const delay=G.lastCI===0?90000:75000;
+  G.ciTimer=setTimeout(showCI,delay);
+}
+function showCI(){
+  const isSus=CFG.preset==='asustain';
+  document.getElementById('ciMode').textContent=isSus?'ADAPTIVE SUSTAIN':'ADAPTIVE BUILD';
+  document.getElementById('ciSub').textContent=isSus
+    ?'This keeps you right at the edge. How close are you?'
+    :'Be honest — this helps calibrate your session.';
+  document.getElementById('ciO').classList.add('show');
+}
+function ciR(level){
+  document.getElementById('ciO').classList.remove('show');
+  G.lastCI=Date.now();
+  applyAdaptive(level,false);
+  schCI();
+}
+
+// ── "I'M CLOSE" immediate button ──────────────
+function playerClose(){
+  resAC();
+  // Dismiss check-in overlay if open
+  document.getElementById('ciO').classList.remove('show');
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  applyAdaptive('edge',true);
+  schCI();
+}
+
+// ── CORE ADAPTIVE LOGIC ────────────────────────
+// BUILD goal: get player to their edge.
+//   - green (far off) → push ceiling up hard, rebuild
+//   - yellow (close) → nudge ceiling up, rebuild
+//   - red (right there) → hold/nudge up slightly — they're nearly there, tip them over
+//   - fromClose → same as red
+//
+// SUSTAIN goal: keep player at the edge without going over.
+//   - green (far off) → push speed up
+//   - yellow (close) → tiny nudge up, maintain tension
+//   - red (right there) / fromClose → back off meaningfully right now
+function applyAdaptive(level,fromClose){
+  const bpm=G.currentBpm;
+  const isSus=CFG.preset==='asustain';
+  if(!G.profile)G.profile={edgeBpm:null,sessions:0};
+
+  if(isSus){
+    // ── SUSTAIN ──────────────────────────────────
+    if(level==='edge'||fromClose){
+      // At/over edge — drop speed immediately to pull them back
+      const drop=Math.max(CFG.minBpm, snap(bpm*0.80));
+      G.adCeiling=Math.min(CFG.maxBpm, drop+12);
+      G.adFloor=Math.max(CFG.minBpm, drop-15);
+      // Update edge estimate
+      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
+      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
+    }else if(level==='close'){
+      // Perfect — tiny nudge up to maintain the tension
+      const nudge=Math.min(CFG.maxBpm, snap(bpm+5));
+      G.adCeiling=Math.min(CFG.maxBpm, nudge+10);
+      G.adFloor=Math.max(CFG.minBpm, nudge-20);
+    }else{
+      // Far off — push harder
+      const push=Math.min(CFG.maxBpm, snap(bpm+16));
+      G.adCeiling=Math.min(CFG.maxBpm, push+10);
+      G.adFloor=Math.max(CFG.minBpm, push-20);
+    }
+    // Rebuild sustain pattern with new range
+    startMetro(getBlocks(G.currentEdge));
+
+  }else{
+    // ── BUILD ─────────────────────────────────────
+    if(level==='edge'||fromClose){
+      // Right there — hold this speed or nudge slightly higher to tip them over
+      const target=fromClose?Math.min(CFG.maxBpm,snap(bpm+5)):snap(bpm);
+      G.adCeiling=Math.min(CFG.maxBpm, target+8);
+      G.adFloor=Math.max(CFG.minBpm, target-20);
+      // Record this as their edge speed
+      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
+      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.6+bpm*0.4);
+    }else if(level==='close'){
+      // Getting there — nudge ceiling up
+      G.adCeiling=Math.min(CFG.maxBpm, G.adCeiling+12);
+    }else{
+      // Far off — push harder
+      G.adCeiling=Math.min(CFG.maxBpm, G.adCeiling+20);
+      G.adFloor=Math.min(G.adCeiling-20, G.adFloor+8);
+    }
+    // Clamp floor always below ceiling
+    G.adFloor=Math.min(G.adFloor, G.adCeiling-15);
+    G.adFloor=Math.max(CFG.minBpm, G.adFloor);
+    // Rebuild build pattern with new range
+    startMetro(getBlocks(G.currentEdge));
+  }
+  saveProf();
+}
+
+// ════════════════════════════════════════════
+// SUSTAIN TIMER
+// ════════════════════════════════════════════
+function startSustainTimer(){
+  G.sustainTotal=CFG.sustainMins*60;
+  G.sustainRemaining=G.sustainTotal;
+  document.getElementById('stWrap').style.display='block';
+  updST();
+  G.sustainTimer=setInterval(()=>{
+    G.sustainRemaining=Math.max(0,G.sustainRemaining-1);
+    updST();
+    if(G.sustainRemaining<=0){
+      clearInterval(G.sustainTimer);G.sustainTimer=null;
+      stopMetro();
+      if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+      document.getElementById('ciO').classList.remove('show');
+      showSummary();
+    }
+  },1000);
+}
+function updST(){
+  const pct=Math.max(0,(G.sustainRemaining/G.sustainTotal)*100);
+  document.getElementById('stFill').style.width=pct+'%';
+  const m=Math.floor(G.sustainRemaining/60),s=G.sustainRemaining%60;
+  document.getElementById('stTime').textContent=m+':'+(s<10?'0':'')+s;
+}
+
+// ════════════════════════════════════════════
+// SESSION FLOW
+// ════════════════════════════════════════════
+function startSession(){
+  CFG.minBpm=+document.getElementById('mnS').value;
+  CFG.maxBpm=+document.getElementById('mxS').value;
+  CFG.targetEdges=+document.getElementById('eC').textContent;
+  CFG.breakSecs=+document.getElementById('bS').textContent;
+  CFG.sustainMins=+document.getElementById('sMins').textContent;
+  G.edges=[];G.edgeStarts=[];G.currentEdge=0;
+  G.sessionStart=Date.now();G.lastCI=0;
+  G.adFloor=CFG.minBpm;G.adCeiling=CFG.maxBpm;
+  G.profile=null;
+
+  const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
+  const isSus=CFG.preset==='asustain';
+
+  // Badge
+  const badge=document.getElementById('abadge');
+  badge.style.display=isAd?'inline-flex':'none';
+  badge.textContent=isSus?'⬡ ADAPTIVE SUSTAIN':'⬡ ADAPTIVE BUILD';
+
+  // Button visibility
+  document.getElementById('closeBtn').style.display=isAd?'':'none';
+  document.getElementById('edgedBtn').style.display=isSus?'none':'';
+  document.getElementById('stWrap').style.display='none';
+
+  if(isAd)loadProf();
+  buildPips();
+
+  // Show play screen BEFORE starting metronome
+  showScreen('scrPlay');
+  beginEdge();
+  if(isSus)startSustainTimer();
+}
+
+function buildPips(){
+  const r=document.getElementById('pipR');r.innerHTML='';
+  if(CFG.openSession||CFG.preset==='asustain')return;
+  for(let i=0;i<CFG.targetEdges;i++){
+    const p=document.createElement('div');
+    p.className='ep';p.id='p'+i;r.appendChild(p);
+  }
+}
+function setPip(i,s){
+  const p=document.getElementById('p'+i);
+  if(p){p.classList.remove('done','over');if(s)p.classList.add(s);}
+}
+
+// beginEdge: starts the metronome and schedules check-in.
+// Does NOT change screen — caller handles screen transitions.
+function beginEdge(){
+  G.currentEdge++;
+  G.edgeStarts.push(Date.now());
+  resAC();
+  startMetro(getBlocks(G.currentEdge));
+  const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
+  if(isAd)schCI();
+}
+
+function recordEdge(over){
+  const dur=Math.round((Date.now()-G.edgeStarts[G.currentEdge-1])/1000);
+  G.edges.push({bpm:Math.round(G.currentBpm),over,duration:dur});
+  setPip(G.currentEdge-1,over?'over':'done');
+}
+
+function afterEdge(){
+  stopMetro();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  document.getElementById('ciO').classList.remove('show');
+
+  // Check if target reached
+  if(!CFG.openSession&&G.currentEdge>=CFG.targetEdges){
+    showSummary();
+    return;
+  }
+
+  if(CFG.autoStart){
+    // Auto break: start countdown then auto-advance
+    startBreak();
+  }else{
+    // Manual: show break screen with dash, user presses button
+    document.getElementById('breakLbl').textContent='BREAK';
+    document.getElementById('brkN').textContent='—';
+    document.getElementById('skipBtn').textContent='Next Edge';
+    showScreen('scrBreak');
+  }
+}
+
+function playerEdged(){resAC();recordEdge(false);afterEdge();}
+function wentOver(){resAC();recordEdge(true);afterEdge();}
+
+function startBreak(){
+  // Clear any existing timer
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  document.getElementById('breakLbl').textContent='NEXT EDGE IN';
+  document.getElementById('skipBtn').textContent='Skip — Next Edge Now';
+  // Show break screen
+  showScreen('scrBreak');
+  G.breakRemaining=Math.max(1,CFG.breakSecs);
+
+  function tick(){
+    // Decrement first, then display — so countdown goes 30→29→...→1→fires (never shows 0)
+    G.breakRemaining--;
+    if(G.breakRemaining<=0){
+      document.getElementById('brkN').textContent='0';
+      clearInterval(G.breakTimer);
+      G.breakTimer=null;
+      startNextEdge();
+      return;
+    }
+    document.getElementById('brkN').textContent=G.breakRemaining;
+  }
+  // Show initial value before first tick
+  document.getElementById('brkN').textContent=G.breakRemaining;
+  G.breakTimer=setInterval(tick,1000);
+}
+
+// startNextEdge: transitions to play screen and starts the next edge.
+function startNextEdge(){
+  // Clear break timer if still running (e.g. user pressed Skip)
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  // Show play screen BEFORE starting metronome
+  showScreen('scrPlay');
+  beginEdge();
+}
+
+function endSession(){
+  stopMetro();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  document.getElementById('ciO').classList.remove('show');
+  showSummary();
+}
+
+// ════════════════════════════════════════════
+// SUMMARY
+// ════════════════════════════════════════════
+function showSummary(){
+  const tot=Math.round((Date.now()-G.sessionStart)/1000);
+  const isSus=CFG.preset==='asustain';
+  const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
+  const clean=G.edges.filter(e=>!e.over).length;
+  const over=G.edges.filter(e=>e.over).length;
+  const peak=G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):Math.round(G.currentBpm);
+  const m=Math.floor(tot/60),s=tot%60;
+  const tStr=m>0?`${m}m ${s}s`:`${s}s`;
+  const pLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic',
+    abuild:'Adaptive: Build',asustain:'Adaptive: Sustain'}[CFG.preset]||CFG.preset;
+
+  let html=`<div class="card-title">Results</div>`;
+  if(isSus){
+    html+=`<div class="ss"><span class="l">Time sustained</span><span class="v cgr">${tStr}</span></div>`;
+    html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
+    if(G.profile&&G.profile.edgeBpm)
+      html+=`<div class="ss"><span class="l">Estimated edge speed</span><span class="v ca">${G.profile.edgeBpm} bpm</span></div>`;
+    html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
+    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+    html+=`<div class="ss"><span class="l">Sub-pattern</span><span class="v">${spLabel}</span></div>`;
+  }else{
+    html+=`<div class="ss"><span class="l">Edges achieved</span><span class="v ca">${clean}</span></div>`;
+    if(over>0)html+=`<div class="ss"><span class="l">Went over</span><span class="v cr">${over}</span></div>`;
+    html+=`<div class="ss"><span class="l">Session time</span><span class="v cg">${tStr}</span></div>`;
+    html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
+    html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
+    // Only show difficulty for non-adaptive modes
+    if(!isAd){
+      const dLabel=CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1);
+      html+=`<div class="ss"><span class="l">Difficulty</span><span class="v">${dLabel}</span></div>`;
+    }
+  }
+  document.getElementById('sumStats').innerHTML=html;
+
+  // Splits table
+  const tbl=document.getElementById('splitsT');
+  tbl.innerHTML=`<tr><th>#</th><th>Time</th><th>Speed</th><th>Result</th></tr>`;
+  if(isSus||G.edges.length===0){
+    tbl.innerHTML+=`<tr><td colspan="4" style="color:var(--muted);font-style:italic;padding:10px 3px;">
+      ${isSus?'Sustain mode — no individual edges tracked.':'No edges recorded this session.'}</td></tr>`;
+  }else{
+    G.edges.forEach((e,i)=>{
+      const em=Math.floor(e.duration/60),es=e.duration%60;
+      const d=em>0?`${em}m ${es}s`:`${es}s`;
+      const res=e.over
+        ?'<span style="color:var(--red)">Over</span>'
+        :'<span style="color:var(--green)">✓</span>';
+      tbl.innerHTML+=`<tr><td>${i+1}</td><td>${d}</td><td>${e.bpm} bpm</td><td>${res}</td></tr>`;
+    });
+  }
+
+  // Share text
+  const url='https://curiouspirategames.github.io/MetronomeEdger/';
+  const lines=['🎵 The Metronome Edger — Session Complete',''];
+  if(isSus){
+    lines.push(`⏱ Sustained for: ${tStr}`);
+    lines.push(`📈 Peak speed: ${peak} bpm`);
+    if(G.profile&&G.profile.edgeBpm)lines.push(`🎯 Edge estimate: ${G.profile.edgeBpm} bpm`);
+  }else{
+    lines.push(`✦ Edges: ${clean}${over>0?`  ⚠ Over: ${over}`:''}`);
+    lines.push(`⏱ Time: ${tStr}  ·  Peak: ${peak} bpm`);
+    if(G.edges.length>0){
+      lines.push('');lines.push('Splits:');
+      G.edges.forEach((e,i)=>{
+        const em=Math.floor(e.duration/60),es=e.duration%60;
+        const d=em>0?`${em}m ${es}s`:`${es}s`;
+        lines.push(`  ${i+1}. ${d} @ ${e.bpm} bpm${e.over?' ⚠':' ✓'}`);
+      });
+    }
+  }
+  lines.push('');
+  lines.push(`📋 ${pLabel}${!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):''}`);
+  lines.push('');
+  lines.push(getRating(clean,over,isSus,tStr));
+  lines.push('');
+  lines.push(url);
+  document.getElementById('shareBox').textContent=lines.join('\n');
+
+  showScreen('scrSummary');
+  if(G.profile){G.profile.sessions=(G.profile.sessions||0)+1;saveProf();}
+}
+
+function getRating(c,o,isSus,t){
+  if(isSus)return`Held the edge for ${t}. Every second at the edge is a win.`;
+  if(c===0&&o>0)return'Went over before edging — try a lower difficulty.';
+  if(c===0)return'Session ended early — no edges counted.';
+  if(o===0&&c>=5)return'Exceptional control. Every edge held perfectly.';
+  if(o===0&&c>=3)return'Clean session — solid discipline throughout.';
+  if(o===0)return'Clean edges. Good control.';
+  if(o<c)return'Strong session despite going over — control is building.';
+  return'Tough session. Keep training that edge awareness.';
+}
+
+// ════════════════════════════════════════════
+// COPY — robust two-path
+// ════════════════════════════════════════════
+function doCopy(){
+  const txt=document.getElementById('shareBox').textContent;
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(showCopied).catch(()=>fbCopy(txt));
+  }else{fbCopy(txt);}
+}
+function fbCopy(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;
+  ta.style.cssText='position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');showCopied();}
+  catch(e){alert('Long-press the text above to copy manually.');}
+  document.body.removeChild(ta);
+}
+function showCopied(){
+  const t=document.getElementById('toast');t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function resetAll(){
+  stopMetro();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  document.getElementById('ciO').classList.remove('show');
+  showScreen('scrWelcome');
+}
+
+// ── INIT ──────────────────────────────────────
+(function(){
+  document.querySelectorAll('input[type=range]').forEach(el=>{
+    el.style.setProperty('--pct',((el.value-el.min)/(el.max-el.min)*100)+'%');
+  });
+  document.getElementById('pInfo').textContent=PINFO['waves'];
+  document.getElementById('dInfo').textContent=DINFO['medium'];
+})();
+</script>
+</body>
+</html>
