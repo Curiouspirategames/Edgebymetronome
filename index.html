@@ -232,7 +232,7 @@ input[type=range]::-webkit-slider-runnable-track{
         <span class="pn">Erratic</span><span class="pd">Random speeds, random durations</span>
       </button>
       <button class="pb" onclick="selP('abuild',this)">
-        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge — press ⚡ when close</span>
+        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge with check-ins every ~90s</span>
       </button>
       <button class="pb" onclick="selP('asustain',this)">
         <span class="pn">Adaptive: Sustain</span><span class="pd">Keeps you right at the edge — press ⚡ to back off</span>
@@ -1015,7 +1015,12 @@ function beginEdge(){
   resAC();
   startMetro(getBlocks(G.currentEdge));
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
-  if(isAd)schCI();
+  if(isAd){
+    // Reset lastCI so the first check-in of each new edge always waits 90s,
+    // not 75s from wherever the previous edge left off.
+    G.lastCI=0;
+    schCI();
+  }
 }
 
 function recordEdge(over){
@@ -1048,7 +1053,17 @@ function afterEdge(){
 }
 
 function playerEdged(){resAC();recordEdge(false);afterEdge();}
-function wentOver(){resAC();recordEdge(true);afterEdge();}
+function wentOver(){
+  resAC();
+  recordEdge(true);
+  // Going over ends the session immediately
+  stopMetro();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  document.getElementById('ciO').classList.remove('show');
+  showSummary();
+}
 
 function startBreak(){
   // Clear any existing timer
@@ -1151,45 +1166,44 @@ function showSummary(){
   }
 
   // Share text
-  const url='https://curiouspirategames.github.io/Edgebymetronome/';
-  const lines=['🎵 The Metronome Edger — Session Complete',''];
+  const url='https://curiouspirategames.github.io/MetronomeEdger/';
+  const diffStr=!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):'';
+  const sep='─────────────────────────';
+  const shareLines=[];
+
+  shareLines.push(sep);
+  shareLines.push('🎵 The Metronome Edger 🎵');
+
   if(isSus){
-    lines.push(`⏱ Held on for: ${tStr}`);
-    lines.push(`📈 Peak speed: ${peak} bpm`);
-    if(G.profile&&G.profile.edgeBpm)lines.push(`🎯 Edge speed (inferred): ${G.profile.edgeBpm} bpm`);
+    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+    shareLines.push(`Pattern: ${pLabel}${spLabel?' ('+spLabel+')':''}`);
+    shareLines.push(`⏱ Time: ${tStr}  ·  📈 Peak: ${peak} bpm`);
+    if(G.profile&&G.profile.edgeBpm)
+      shareLines.push(`🎯 Edge speed: ~${G.profile.edgeBpm} bpm`);
   }else{
-    lines.push(`✦ Edges: ${clean}${over>0?`  ⚠ Over: ${over}`:''}`);
-    lines.push(`⏱ Time: ${tStr}  ·  Peak: ${peak} bpm`);
-    if(G.edges.length>0){
-      lines.push('');lines.push('Splits:');
-      G.edges.forEach((e,i)=>{
-        const em=Math.floor(e.duration/60),es=e.duration%60;
-        const d=em>0?`${em}m ${es}s`:`${es}s`;
-        lines.push(`  ${i+1}. ${d} @ ${e.bpm} bpm${e.over?' ⚠':' ✓'}`);
-      });
+    shareLines.push(`Pattern: ${pLabel}${diffStr}`);
+    let statsLine=`✦ Edges: ${clean}  ·  ⏱ ${tStr}  ·  📈 Peak: ${peak} bpm`;
+    shareLines.push(statsLine);
+    if(over>0) shareLines.push(`⚠ Went over the edge`);
+    if(G.edges.filter(e=>!e.over).length>0){
+      const splitParts=G.edges
+        .map((e,i)=>({e,n:i+1}))          // keep original edge number
+        .filter(({e})=>!e.over)
+        .map(({e,n})=>{
+          const em=Math.floor(e.duration/60),es=e.duration%60;
+          const d=em>0?`${em}m${es}s`:`${es}s`;
+          return `${n}.${d} @ ${e.bpm} bpm`;
+        });
+      shareLines.push(`Splits: ${splitParts.join('  |  ')}`);
     }
   }
-  lines.push('');
-  lines.push(`📋 ${pLabel}${!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):''}`);
-  lines.push('');
-  lines.push(getRating(clean,over,isSus,tStr));
-  lines.push('');
-  lines.push(url);
-  document.getElementById('shareBox').textContent=lines.join('\n');
+
+  shareLines.push(url);
+  shareLines.push(sep);
+  document.getElementById('shareBox').textContent=shareLines.join('\n');
 
   showScreen('scrSummary');
   if(G.profile){G.profile.sessions=(G.profile.sessions||0)+1;saveProf();}
-}
-
-function getRating(c,o,isSus,t){
-  if(isSus)return`Held on for ${t}. Every second teased.`;
-  if(c===0&&o>0)return'Went over before edging — try a lower difficulty.';
-  if(c===0)return'Session ended early — no edges counted.';
-  if(o===0&&c>=5)return'Exceptional control. Every edge held perfectly.';
-  if(o===0&&c>=3)return'Clean session — solid discipline throughout.';
-  if(o===0)return'Clean edges. Good control.';
-  if(o<c)return'Strong session despite going over — control is building.';
-  return'Tough session. Keep training that edge awareness.';
 }
 
 // ════════════════════════════════════════════
