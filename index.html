@@ -232,7 +232,7 @@ input[type=range]::-webkit-slider-runnable-track{
         <span class="pn">Erratic</span><span class="pd">Random speeds, random durations</span>
       </button>
       <button class="pb" onclick="selP('abuild',this)">
-        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge with check-ins every ~90s</span>
+        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge — press ⚡ when close</span>
       </button>
       <button class="pb" onclick="selP('asustain',this)">
         <span class="pn">Adaptive: Sustain</span><span class="pd">Keeps you right at the edge — press ⚡ to back off</span>
@@ -441,7 +441,7 @@ const PINFO={
   slowburn: 'One long staircase. Each step held 35–90 seconds. Patience is the whole point.',
   pulse:    'Short fast bursts followed by a recovery drop. Each cycle the burst grows longer, the drop shorter.',
   erratic:  'Fully random speeds for random durations. Different every edge. Unpredictable by design.',
-  abuild:   'Goal: get you to your edge. Starts moderate and adjusts from check-ins every ~90 seconds to find and push you toward your edge. Learns your range across sessions.',
+  abuild:   'Goal: get you to your edge. Starts moderate, adjusts from check-ins every ~90 seconds. Press ⚡ any time you\'re very close — it will hold the speed or push slightly harder to tip you over.',
   asustain: 'Goal: keep you at the edge without going over. Set a timer and pick a pattern. Press ⚡ any time you\'re about to tip — it backs off immediately. Check-ins fine-tune the ceiling every ~90 seconds.',
 };
 const DINFO={
@@ -462,7 +462,6 @@ const G={
   // session
   edges:[], edgeStarts:[], currentEdge:0, sessionStart:null,
   breakTimer:null, breakRemaining:0,
-  peakBpmSeen:0,
   // adaptive
   adFloor:0, adCeiling:0, ciTimer:null, lastCI:0, profile:null,
   // sustain
@@ -605,7 +604,6 @@ function schBlock(idx,tok){
   if(tok!==G.metroToken||G.timerDone)return;
   const b=G.blocks[idx%G.blocks.length];
   G.currentBpm=b.bpm;
-  if(b.bpm>G.peakBpmSeen) G.peakBpmSeen=b.bpm; // track session peak
   const bpmEl=document.getElementById('mBpm');
   const pEl=document.getElementById('pLbl');
   if(bpmEl)bpmEl.textContent=Math.round(b.bpm);
@@ -694,35 +692,6 @@ function pErratic(lo,hi){
   return bl;
 }
 
-// ── SUSTAIN ZONE PATTERN ──────────────────────────────────────────
-// Used exclusively by Adaptive Sustain after check-ins.
-// Stays near the TARGET bpm — never drops back to the floor.
-// Oscillates in a narrow band (±10–18 bpm) around the target for variation.
-// This is what prevents the "big drop to floor" problem — the pattern
-// always starts and stays near where the player currently is.
-function pSustainZone(targetBpm,lo,hi){
-  // Clamp target within the allowed range
-  const t=Math.max(lo, Math.min(hi, targetBpm));
-  // Oscillation band: at least 8 bpm, up to 16, up to 25% of range
-  const band=Math.max(8, Math.min(16, (hi-lo)*0.25));
-  const low=Math.max(lo, snap(t-band));
-  const high=Math.min(hi, snap(t+band*0.5)); // bias slightly above target
-
-  // Build 6 blocks that stay in the zone: gentle oscillation
-  // Pattern: high → low → high+wobble → low+wobble → high → low
-  const wobble=snap(rnd(0,5));
-  const highW=Math.min(hi, snap(high+wobble));
-  const lowW=Math.max(lo, snap(low+wobble*0.5));
-  return [
-    {bpm:snap(high),  secs:20, phase:'holding the edge…'},
-    {bpm:snap(low),   secs:14, phase:'breathing…'},
-    {bpm:highW,       secs:22, phase:'back up…'},
-    {bpm:lowW,        secs:12, phase:'breathing…'},
-    {bpm:snap(high),  secs:24, phase:'holding the edge…'},
-    {bpm:snap(low),   secs:14, phase:'breathing…'},
-  ];
-}
-
 // Returns a full block array for the given preset/adaptive settings.
 // lo/hi are always passed explicitly so adaptive modes use their adjusted range.
 function buildBlocks(preset,edgeNum,lo,hi){
@@ -738,26 +707,18 @@ function buildBlocks(preset,edgeNum,lo,hi){
   }
 }
 
-// Main entry — resolves preset and adaptive ranges, then builds blocks.
-// sustainTarget: for asustain adaptations, the BPM to stay near (not rebuild from floor).
-//   Pass null/undefined for the initial session start (uses sub-pattern normally).
-function getBlocks(edgeNum, sustainTarget){
+// Main entry — resolves preset and adaptive ranges, then builds blocks
+function getBlocks(edgeNum){
   const preset=CFG.preset;
   if(preset==='abuild'){
+    // Goal: reach the edge. Use adaptive ceiling/floor, waves pattern
     return buildBlocks('waves',edgeNum,G.adFloor,G.adCeiling);
   }
   if(preset==='asustain'){
-    if(sustainTarget!=null){
-      // After a check-in: use the zone pattern — stay near where the player is
-      return pSustainZone(sustainTarget, G.adFloor, G.adCeiling);
-    }else{
-      // Initial session start: use the chosen sub-pattern to build up normally
-      // Start from ~40% of the way through the range so it doesn't open at minimum
-      const startLo = Math.round(CFG.minBpm + (CFG.maxBpm - CFG.minBpm) * 0.35);
-      const startHi = CFG.maxBpm;
-      return buildBlocks(CFG.sustainPat, edgeNum, startLo, startHi);
-    }
+    // Goal: sustain at edge. Use adaptive ceiling/floor, chosen sub-pattern
+    return buildBlocks(CFG.sustainPat,edgeNum,G.adFloor,G.adCeiling);
   }
+  // Standard presets use CFG bpm range
   return buildBlocks(preset,edgeNum,CFG.minBpm,CFG.maxBpm);
 }
 
@@ -807,10 +768,10 @@ function ciR(level){
   schCI();
 }
 
-// ── "I'M CLOSE" immediate button — SUSTAIN MODE ONLY ──────────────
+// ── "I'M CLOSE" immediate button ──────────────
 function playerClose(){
-  if(CFG.preset!=='asustain') return; // guard: button should never appear in build mode
   resAC();
+  // Dismiss check-in overlay if open
   document.getElementById('ciO').classList.remove('show');
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   applyAdaptive('edge',true);
@@ -821,13 +782,13 @@ function playerClose(){
 // BUILD goal: get player to their edge.
 //   - green (far off) → push ceiling up hard, rebuild
 //   - yellow (close) → nudge ceiling up, rebuild
-//   - red (right there) → hold/nudge up slightly — they're nearly there
+//   - red (right there) → hold/nudge up slightly — they're nearly there, tip them over
+//   - fromClose → same as red
 //
 // SUSTAIN goal: keep player at the edge without going over.
 //   - green (far off) → push speed up
 //   - yellow (close) → tiny nudge up, maintain tension
-//   - red check-in → small step back
-//   - fromClose (⚡) → drop to minimum immediately
+//   - red (right there) / fromClose → back off meaningfully right now
 function applyAdaptive(level,fromClose){
   const bpm=G.currentBpm;
   const isSus=CFG.preset==='asustain';
@@ -835,79 +796,33 @@ function applyAdaptive(level,fromClose){
 
   if(isSus){
     // ── SUSTAIN ──────────────────────────────────
-    // Goal: keep the player oscillating between yellow and red.
-    // We track consecutive check-in reds to detect if ceiling is persistently too high.
-    if(!G.profile.sustainReds) G.profile.sustainReds=0;
-
-    let sustainTarget; // the BPM to oscillate around after this response
-
-    if(fromClose){
-      // ⚡ "I'm close" — emergency drop. Go straight to minimum speed so
-      // the player can recover fully. The zone then rebuilds from there.
-      G.profile.sustainReds=0; // reset streak — this is a manual override
-      G.profile.lastWasEmergency=true; // flag so next green knows to jump harder
-      sustainTarget = CFG.minBpm;
-      // Update edge speed estimate from where they were
+    if(level==='edge'||fromClose){
+      // At/over edge — drop speed immediately to pull them back
+      const drop=Math.max(CFG.minBpm, snap(bpm*0.80));
+      G.adCeiling=drop+12;
+      G.adFloor=Math.max(CFG.minBpm, drop-15);
+      // Update edge estimate
       if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
       else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
-      // Reset the ceiling so next build-up is controlled
-      G.adCeiling = Math.min(CFG.maxBpm, CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*0.55);
-      G.adFloor   = CFG.minBpm;
-
-    }else if(level==='edge'){
-      // Check-in red — they're right at the brink. Small deliberate step back.
-      G.profile.lastWasEmergency=false;
-      G.profile.sustainReds++;
-      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
-      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
-      // 3+ reds in a row = ceiling is too high overall, drop more
-      const dropFactor = G.profile.sustainReds>=3 ? 0.88 : 0.93;
-      sustainTarget = Math.max(CFG.minBpm, snap(bpm * dropFactor));
-      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
-      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
-
     }else if(level==='close'){
-      // Yellow — perfect zone. Reset red streak. Tiny nudge up with wobble.
-      G.profile.lastWasEmergency=false;
-      G.profile.sustainReds=0;
-      const wobble = snap(Math.random()*5 - 1); // -1 to +4
-      sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 3 + wobble));
-      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
-      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
-
+      // Perfect — tiny nudge up to maintain the tension
+      const nudge=Math.min(CFG.maxBpm, snap(bpm+5));
+      G.adCeiling=nudge+10;
+      G.adFloor=Math.max(CFG.minBpm, nudge-20);
     }else{
-      // Green — too far off. Reset red streak.
-      // If recovering from an emergency drop, jump toward the known edge speed
-      // rather than just adding 16 bpm to the current (floor) position.
-      G.profile.sustainReds=0;
-      if(G.profile.lastWasEmergency && G.profile.edgeBpm){
-        // Jump most of the way back to the estimated edge zone in one go
-        const edgeTarget = G.profile.edgeBpm;
-        sustainTarget = Math.min(CFG.maxBpm, snap(edgeTarget * 0.88));
-      }else if(G.profile.lastWasEmergency){
-        // No edge estimate yet — jump to 65% of the full range
-        sustainTarget = Math.min(CFG.maxBpm, snap(CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*0.65));
-      }else{
-        // Normal green — modest push
-        sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 16));
-      }
-      G.profile.lastWasEmergency=false;
-      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
-      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
+      // Far off — push harder
+      const push=Math.min(CFG.maxBpm, snap(bpm+16));
+      G.adCeiling=push+10;
+      G.adFloor=Math.max(CFG.minBpm, push-20);
     }
-
-    // Ensure floor never meets or exceeds ceiling
-    G.adFloor = Math.min(G.adFloor, G.adCeiling - 10);
-    G.adFloor = Math.max(CFG.minBpm, G.adFloor);
-
-    // Use zone pattern — stays near sustainTarget, never rebuilds from floor
-    startMetro(getBlocks(G.currentEdge, sustainTarget));
+    // Rebuild sustain pattern with new range
+    startMetro(getBlocks(G.currentEdge));
 
   }else{
     // ── BUILD ─────────────────────────────────────
-    if(level==='edge'){
-      // Right at the edge — hold this speed to keep them there
-      const target=snap(bpm);
+    if(level==='edge'||fromClose){
+      // Right there — hold this speed or nudge slightly higher to tip them over
+      const target=fromClose?Math.min(CFG.maxBpm,snap(bpm+5)):snap(bpm);
       G.adCeiling=Math.min(CFG.maxBpm, target+8);
       G.adFloor=Math.max(CFG.minBpm, target-20);
       // Record this as their edge speed
@@ -970,7 +885,6 @@ function startSession(){
   G.sessionStart=Date.now();G.lastCI=0;
   G.adFloor=CFG.minBpm;G.adCeiling=CFG.maxBpm;
   G.profile=null;
-  G.peakBpmSeen=0; // track highest BPM reached during session (needed for sustain summary)
 
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   const isSus=CFG.preset==='asustain';
@@ -980,8 +894,8 @@ function startSession(){
   badge.style.display=isAd?'inline-flex':'none';
   badge.textContent=isSus?'⬡ ADAPTIVE SUSTAIN':'⬡ ADAPTIVE BUILD';
 
-  // ⚡ "I'm close" button: sustain only. Build uses "I've Edged" instead.
-  document.getElementById('closeBtn').style.display=isSus?'':'none';
+  // Button visibility
+  document.getElementById('closeBtn').style.display=isAd?'':'none';
   document.getElementById('edgedBtn').style.display=isSus?'none':'';
   document.getElementById('stWrap').style.display='none';
 
@@ -1015,12 +929,7 @@ function beginEdge(){
   resAC();
   startMetro(getBlocks(G.currentEdge));
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
-  if(isAd){
-    // Reset lastCI so the first check-in of each new edge always waits 90s,
-    // not 75s from wherever the previous edge left off.
-    G.lastCI=0;
-    schCI();
-  }
+  if(isAd)schCI();
 }
 
 function recordEdge(over){
@@ -1053,17 +962,7 @@ function afterEdge(){
 }
 
 function playerEdged(){resAC();recordEdge(false);afterEdge();}
-function wentOver(){
-  resAC();
-  recordEdge(true);
-  // Going over ends the session immediately
-  stopMetro();
-  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
-  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
-  document.getElementById('ciO').classList.remove('show');
-  showSummary();
-}
+function wentOver(){resAC();recordEdge(true);afterEdge();}
 
 function startBreak(){
   // Clear any existing timer
@@ -1075,19 +974,18 @@ function startBreak(){
   G.breakRemaining=Math.max(1,CFG.breakSecs);
 
   function tick(){
-    // Decrement first, then display — so countdown goes 30→29→...→1→fires (never shows 0)
-    G.breakRemaining--;
+    // Update display first
+    document.getElementById('brkN').textContent=G.breakRemaining;
     if(G.breakRemaining<=0){
-      document.getElementById('brkN').textContent='0';
+      // Stop the interval before calling startNextEdge to prevent any double-firing
       clearInterval(G.breakTimer);
       G.breakTimer=null;
       startNextEdge();
       return;
     }
-    document.getElementById('brkN').textContent=G.breakRemaining;
+    G.breakRemaining--;
   }
-  // Show initial value before first tick
-  document.getElementById('brkN').textContent=G.breakRemaining;
+  tick(); // show initial count immediately
   G.breakTimer=setInterval(tick,1000);
 }
 
@@ -1118,8 +1016,7 @@ function showSummary(){
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   const clean=G.edges.filter(e=>!e.over).length;
   const over=G.edges.filter(e=>e.over).length;
-  // For sustain, edges array is empty — use the tracked session peak instead
-  const peak=isSus ? G.peakBpmSeen : (G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):G.peakBpmSeen);
+  const peak=G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):Math.round(G.currentBpm);
   const m=Math.floor(tot/60),s=tot%60;
   const tStr=m>0?`${m}m ${s}s`:`${s}s`;
   const pLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic',
@@ -1127,10 +1024,10 @@ function showSummary(){
 
   let html=`<div class="card-title">Results</div>`;
   if(isSus){
-    html+=`<div class="ss"><span class="l">Held on for</span><span class="v cgr">${tStr}</span></div>`;
+    html+=`<div class="ss"><span class="l">Time sustained</span><span class="v cgr">${tStr}</span></div>`;
     html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
     if(G.profile&&G.profile.edgeBpm)
-      html+=`<div class="ss"><span class="l">Your edge speed <small style="color:var(--muted);font-size:.8rem;">(inferred from check-ins)</small></span><span class="v ca">${G.profile.edgeBpm} bpm</span></div>`;
+      html+=`<div class="ss"><span class="l">Estimated edge speed</span><span class="v ca">${G.profile.edgeBpm} bpm</span></div>`;
     html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
     const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
     html+=`<div class="ss"><span class="l">Sub-pattern</span><span class="v">${spLabel}</span></div>`;
@@ -1167,43 +1064,44 @@ function showSummary(){
 
   // Share text
   const url='https://curiouspirategames.github.io/MetronomeEdger/';
-  const diffStr=!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):'';
-  const sep='─────────────────────────';
-  const shareLines=[];
-
-  shareLines.push(sep);
-  shareLines.push('🎵 The Metronome Edger 🎵');
-
+  const lines=['🎵 The Metronome Edger — Session Complete',''];
   if(isSus){
-    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
-    shareLines.push(`Pattern: ${pLabel}${spLabel?' ('+spLabel+')':''}`);
-    shareLines.push(`⏱ Time: ${tStr}  ·  📈 Peak: ${peak} bpm`);
-    if(G.profile&&G.profile.edgeBpm)
-      shareLines.push(`🎯 Edge speed: ~${G.profile.edgeBpm} bpm`);
+    lines.push(`⏱ Sustained for: ${tStr}`);
+    lines.push(`📈 Peak speed: ${peak} bpm`);
+    if(G.profile&&G.profile.edgeBpm)lines.push(`🎯 Edge estimate: ${G.profile.edgeBpm} bpm`);
   }else{
-    shareLines.push(`Pattern: ${pLabel}${diffStr}`);
-    let statsLine=`✦ Edges: ${clean}  ·  ⏱ ${tStr}  ·  📈 Peak: ${peak} bpm`;
-    shareLines.push(statsLine);
-    if(over>0) shareLines.push(`⚠ Went over the edge`);
-    if(G.edges.filter(e=>!e.over).length>0){
-      const splitParts=G.edges
-        .map((e,i)=>({e,n:i+1}))          // keep original edge number
-        .filter(({e})=>!e.over)
-        .map(({e,n})=>{
-          const em=Math.floor(e.duration/60),es=e.duration%60;
-          const d=em>0?`${em}m${es}s`:`${es}s`;
-          return `${n}.${d} @ ${e.bpm} bpm`;
-        });
-      shareLines.push(`Splits: ${splitParts.join('  |  ')}`);
+    lines.push(`✦ Edges: ${clean}${over>0?`  ⚠ Over: ${over}`:''}`);
+    lines.push(`⏱ Time: ${tStr}  ·  Peak: ${peak} bpm`);
+    if(G.edges.length>0){
+      lines.push('');lines.push('Splits:');
+      G.edges.forEach((e,i)=>{
+        const em=Math.floor(e.duration/60),es=e.duration%60;
+        const d=em>0?`${em}m ${es}s`:`${es}s`;
+        lines.push(`  ${i+1}. ${d} @ ${e.bpm} bpm${e.over?' ⚠':' ✓'}`);
+      });
     }
   }
-
-  shareLines.push(url);
-  shareLines.push(sep);
-  document.getElementById('shareBox').textContent=shareLines.join('\n');
+  lines.push('');
+  lines.push(`📋 ${pLabel}${!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):''}`);
+  lines.push('');
+  lines.push(getRating(clean,over,isSus,tStr));
+  lines.push('');
+  lines.push(url);
+  document.getElementById('shareBox').textContent=lines.join('\n');
 
   showScreen('scrSummary');
   if(G.profile){G.profile.sessions=(G.profile.sessions||0)+1;saveProf();}
+}
+
+function getRating(c,o,isSus,t){
+  if(isSus)return`Held the edge for ${t}. Every second at the edge is a win.`;
+  if(c===0&&o>0)return'Went over before edging — try a lower difficulty.';
+  if(c===0)return'Session ended early — no edges counted.';
+  if(o===0&&c>=5)return'Exceptional control. Every edge held perfectly.';
+  if(o===0&&c>=3)return'Clean session — solid discipline throughout.';
+  if(o===0)return'Clean edges. Good control.';
+  if(o<c)return'Strong session despite going over — control is building.';
+  return'Tough session. Keep training that edge awareness.';
 }
 
 // ════════════════════════════════════════════
