@@ -200,6 +200,52 @@ input[type=range]::-webkit-slider-runnable-track{
   border:1px solid var(--accent2);border-radius:20px;background:rgba(129,140,248,.1);
   font-size:.78rem;color:var(--accent2);font-family:'Cinzel',serif;
   letter-spacing:.08em;margin-bottom:8px;}
+
+/* Inline traffic-light strip — always visible during adaptive sessions */
+.tlights{display:flex;gap:12px;justify-content:center;align-items:center;
+  width:100%;max-width:480px;margin-bottom:6px;padding:10px 0;
+  background:var(--surf);border:1px solid var(--border);border-radius:14px;}
+.tlights-label{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin-right:6px;}
+.tlb{width:48px;height:48px;border-radius:50%;font-size:1.5rem;cursor:pointer;
+  border:2px solid transparent;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s, box-shadow .25s, opacity .2s;background:var(--surf2);
+  position:relative;}
+.tlb:active{transform:scale(.88);}
+.tlb.tlg{border-color:var(--green);}
+.tlb.tly{border-color:var(--gold);}
+.tlb.tlr{border-color:var(--red);}
+/* Strong sustained glow when tapped */
+.tlb.flash.tlg{box-shadow:0 0 24px rgba(52,211,153,.9), 0 0 48px rgba(52,211,153,.4);
+  background:rgba(52,211,153,.18);}
+.tlb.flash.tly{box-shadow:0 0 24px rgba(251,191,36,.9), 0 0 48px rgba(251,191,36,.4);
+  background:rgba(251,191,36,.18);}
+.tlb.flash.tlr{box-shadow:0 0 24px rgba(248,113,113,.9), 0 0 48px rgba(248,113,113,.4);
+  background:rgba(248,113,113,.18);}
+/* Pulsing ring on the tapped button */
+.tlb.flash::after{
+  content:'';position:absolute;inset:-6px;border-radius:50%;
+  border:2px solid currentColor;
+  animation:tlb-ring 1.4s ease-out forwards;
+  pointer-events:none;
+}
+.tlb.tlg.flash::after{color:var(--green);}
+.tlb.tly.flash::after{color:var(--gold);}
+.tlb.tlr.flash::after{color:var(--red);}
+@keyframes tlb-ring{
+  0%{transform:scale(.9);opacity:.9;}
+  100%{transform:scale(1.6);opacity:0;}
+}
+
+/* Acknowledgement indicator — small text below traffic lights */
+.tlack{height:18px;font-family:'Cinzel',serif;font-size:.7rem;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);text-align:center;width:100%;max-width:480px;
+  margin-bottom:8px;opacity:0;transition:opacity .25s;}
+.tlack.show{opacity:1;}
+.tlack.show.tlg{color:var(--green);}
+.tlack.show.tly{color:var(--gold);}
+.tlack.show.tlr{color:var(--red);}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
   background:var(--accent);color:#000;padding:10px 24px;border-radius:24px;
   font-family:'Cinzel',serif;font-size:.9rem;letter-spacing:.1em;
@@ -232,7 +278,7 @@ input[type=range]::-webkit-slider-runnable-track{
         <span class="pn">Erratic</span><span class="pd">Random speeds, random durations</span>
       </button>
       <button class="pb" onclick="selP('abuild',this)">
-        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge — press ⚡ when close</span>
+        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge with check-ins every ~90s</span>
       </button>
       <button class="pb" onclick="selP('asustain',this)">
         <span class="pn">Adaptive: Sustain</span><span class="pd">Keeps you right at the edge — press ⚡ to back off</span>
@@ -331,6 +377,7 @@ input[type=range]::-webkit-slider-runnable-track{
   </div>
 
   <button class="btn btn-primary" onclick="startSession()">Begin Session</button>
+  <div style="margin-top:14px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.18em;color:var(--muted);opacity:.5;">v4</div>
 </div>
 
 <!-- ══════════ PLAY ══════════ -->
@@ -359,6 +406,15 @@ input[type=range]::-webkit-slider-runnable-track{
       <button class="mbtn" id="muteBtn" onclick="togMute()">mute</button>
     </div>
   </div>
+
+  <!-- Always-available traffic-light strip — adaptive modes only -->
+  <div class="tlights" id="tlights" style="display:none;">
+    <span class="tlights-label">Quick check</span>
+    <button class="tlb tlg" id="tlG" onclick="quickTap('far')" aria-label="Far off">🟢</button>
+    <button class="tlb tly" id="tlY" onclick="quickTap('close')" aria-label="Getting close">🟡</button>
+    <button class="tlb tlr" id="tlR" onclick="quickTap('edge')" aria-label="Right there">🔴</button>
+  </div>
+  <div class="tlack" id="tlAck"></div>
 
   <!-- ⚡ I'm close — adaptive only, always visible -->
   <button class="btn btn-warn" id="closeBtn" style="display:none;" onclick="playerClose()">
@@ -441,7 +497,7 @@ const PINFO={
   slowburn: 'One long staircase. Each step held 35–90 seconds. Patience is the whole point.',
   pulse:    'Short fast bursts followed by a recovery drop. Each cycle the burst grows longer, the drop shorter.',
   erratic:  'Fully random speeds for random durations. Different every edge. Unpredictable by design.',
-  abuild:   'Goal: get you to your edge. Starts moderate, adjusts from check-ins every ~90 seconds. Press ⚡ any time you\'re very close — it will hold the speed or push slightly harder to tip you over.',
+  abuild:   'Goal: get you to your edge. Starts moderate and adjusts from check-ins every ~90 seconds to find and push you toward your edge. Learns your range across sessions.',
   asustain: 'Goal: keep you at the edge without going over. Set a timer and pick a pattern. Press ⚡ any time you\'re about to tip — it backs off immediately. Check-ins fine-tune the ceiling every ~90 seconds.',
 };
 const DINFO={
@@ -458,12 +514,16 @@ const G={
   metroToken:0, timerDone:false, schedulerActive:false,
   audioCtx:null, muted:false,
   nextBeatTime:0, schedulerTimerId:null, blockTimerId:null,
-  currentBpm:60, beatFlashId:null, blocks:[],
+  currentBpm:60, beatFlashId:null, blocks:[], loopFromIdx:0,
   // session
   edges:[], edgeStarts:[], currentEdge:0, sessionStart:null,
   breakTimer:null, breakRemaining:0,
+  peakBpmSeen:0,
   // adaptive
   adFloor:0, adCeiling:0, ciTimer:null, lastCI:0, profile:null,
+  // quick-tap traffic light
+  quickTaps:[], quickCooldownUntil:0, recentReds:[],
+  pendingTapTimer:null, // delayed pattern change after a triggering tap
   // sustain
   sustainTimer:null, sustainRemaining:0, sustainTotal:0,
 };
@@ -594,6 +654,10 @@ function startMetro(blocks){
   G.timerDone=false;
   G.schedulerActive=true;
   G.blocks=blocks;
+  // Patterns can declare _loopFrom — the index to loop back to after the
+  // last block. This lets a pattern have a one-time intro/build that's not
+  // replayed on each cycle, keeping the player elevated rather than resetting.
+  G.loopFromIdx = (blocks._loopFrom != null) ? blocks._loopFrom : 0;
   G.currentBpm=blocks[0].bpm;
   G.nextBeatTime=getAC().currentTime+0.05;
   runSched(G.metroToken);
@@ -602,8 +666,20 @@ function startMetro(blocks){
 
 function schBlock(idx,tok){
   if(tok!==G.metroToken||G.timerDone)return;
-  const b=G.blocks[idx%G.blocks.length];
+  const len = G.blocks.length;
+  if(len===0) return; // safety
+  let realIdx;
+  if(idx < len){
+    realIdx = idx;
+  }else{
+    // Loop from loopFromIdx — defensive: ensure loopLen > 0
+    const loopFrom = Math.min(G.loopFromIdx, len-1);
+    const loopLen = Math.max(1, len - loopFrom);
+    realIdx = loopFrom + ((idx - loopFrom) % loopLen);
+  }
+  const b=G.blocks[realIdx];
   G.currentBpm=b.bpm;
+  if(b.bpm>G.peakBpmSeen) G.peakBpmSeen=b.bpm;
   const bpmEl=document.getElementById('mBpm');
   const pEl=document.getElementById('pLbl');
   if(bpmEl)bpmEl.textContent=Math.round(b.bpm);
@@ -620,6 +696,39 @@ function stopMetro(){
   if(G.schedulerTimerId){clearTimeout(G.schedulerTimerId);G.schedulerTimerId=null;}
 }
 
+// Smoothly transition from current BPM into a new pattern.
+// Prepends 1-2 short bridge blocks that step from currentBpm to the new
+// pattern's first block, so check-in changes don't snap jarringly.
+function startMetroSmooth(blocks){
+  if(!blocks || blocks.length===0){ startMetro(blocks); return; }
+  const fromBpm = G.currentBpm || blocks[0].bpm;
+  const toBpm = blocks[0].bpm;
+  const diff = Math.abs(toBpm - fromBpm);
+
+  // If the gap is tiny, no bridge needed
+  if(diff < 6){ startMetro(blocks); return; }
+
+  // Build a bridge: 1 block for small gap, 2 for larger
+  const bridge = [];
+  if(diff < 18){
+    // Single bridge step at midpoint, 3s
+    const mid = snap((fromBpm + toBpm) / 2);
+    bridge.push({bpm: mid, secs: 3, phase: ''});
+  }else{
+    // Two-step bridge for larger gaps — 2.5s each
+    const step1 = snap(fromBpm + (toBpm - fromBpm) * 0.4);
+    const step2 = snap(fromBpm + (toBpm - fromBpm) * 0.75);
+    bridge.push({bpm: step1, secs: 2.5, phase: ''});
+    bridge.push({bpm: step2, secs: 2.5, phase: ''});
+  }
+  const merged = [...bridge, ...blocks];
+  // Preserve loop point — shift it by the number of bridge blocks added
+  if(blocks._loopFrom != null){
+    merged._loopFrom = blocks._loopFrom + bridge.length;
+  }
+  startMetro(merged);
+}
+
 function togMute(){
   G.muted=!G.muted;
   const b=document.getElementById('muteBtn');
@@ -632,64 +741,220 @@ function togMute(){
 // PATTERNS
 // All pattern generators receive (edgeNum, lo, hi) explicitly
 // so adaptive modes can pass their adjusted floor/ceiling.
+//
+// Each pattern is split into:
+//   1. BUILD blocks — one-time climb from floor toward peak (plays once)
+//   2. SUSTAIN blocks — loop point (_loopFrom) sets where cycling restarts
+//      after the build, so the player is held near peak with variation
+//      instead of resetting to floor every cycle.
 // ════════════════════════════════════════════
 function snap(b){return Math.round(b);}
 function rnd(a,b){return a+Math.random()*(b-a);}
 const DT={easy:{bs:1.6,hs:1.5},medium:{bs:1.0,hs:1.0},hard:{bs:0.6,hs:0.65}};
 function dt(){return DT[CFG.diff]||DT.medium;}
 
+// Jitter a value by ±pct (e.g. jit(20, 0.2) returns 16-24).
+// Used to add per-edge variation to durations and BPM offsets so that
+// repeated edges don't feel mechanically identical.
+function jit(v, pct){ return v * (1 + (Math.random()*2 - 1) * pct); }
+
+// Shuffle an array in place (Fisher-Yates). Used to vary sustain loop order.
+function shuffle(arr){
+  for(let i=arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── WAVES ─────────────────────────────────────
+// Build: 4 ascending crests with very shallow troughs (don't drop near floor).
+// Sustain loop: 3 high-zone oscillations + peak hold, all in upper third of range.
+// Per-edge variation: durations jitter ±20%, trough depth varies, sustain loop shuffled.
 function pWaves(edgeNum,lo,hi){
   const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/8);
-  const floor=lo+rng*0.32*prog, peak=lo+rng*0.94, t=dt();
-  const ws=Math.round(22*t.bs), ds=Math.round(16*t.bs), hs=Math.round(28*t.hs);
+  const startFloor=lo+rng*0.32*prog, peak=lo+rng*0.94, t=dt();
+  const baseWs=22*t.bs, baseDs=14*t.bs, baseHs=34*t.hs;
   const bl=[];
-  for(let w=0;w<5;w++){
-    const f=(w+1)/5;
-    const crest=floor+(peak-floor)*f;
-    const trough=floor+(crest-floor)*0.28;
-    bl.push({bpm:snap(crest),secs:ws,phase:w<2?'building…':'rising…'});
-    if(w<4) bl.push({bpm:snap(trough),secs:ds,phase:'easing…'});
+
+  // BUILD: 4 crests with shallow troughs, durations jittered per edge
+  for(let w=0;w<4;w++){
+    const f=(w+1)/4;
+    const crest=startFloor+(peak-startFloor)*f;
+    // Trough depth varies per edge: 60-78% up from floor toward crest
+    const troughRatio = 0.62 + Math.random()*0.16 + w*0.03;
+    const trough=startFloor+(crest-startFloor)*troughRatio;
+    bl.push({bpm:snap(crest), secs:Math.max(8,Math.round(jit(baseWs, 0.18))), phase:''});
+    if(w<3) bl.push({bpm:snap(trough), secs:Math.max(6,Math.round(jit(baseDs, 0.18))), phase:''});
   }
-  bl.push({bpm:snap(peak),secs:hs,phase:'at peak — hold the pace'});
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: stays in upper third with variation
+  const upperFloor = lo + rng*0.66;
+  const sustainLow = Math.max(upperFloor, snap(peak * (0.80 + Math.random()*0.04)));
+  const sustainMidLow = Math.max(upperFloor, snap(peak * (0.86 + Math.random()*0.04)));
+  const sustainHigh = snap(peak * (0.94 + Math.random()*0.04));
+
+  // 5 sustain blocks — 3 highs and 2 dips, shuffled order to vary cycles per edge
+  const highs = [
+    {bpm:snap(peak),    secs:Math.max(10,Math.round(jit(baseHs, 0.20))), phase:''},
+    {bpm:sustainHigh,   secs:Math.max(10,Math.round(jit(baseHs*0.72, 0.20))), phase:''},
+    {bpm:snap(peak),    secs:Math.max(10,Math.round(jit(baseHs*0.84, 0.20))), phase:''},
+  ];
+  const dips = [
+    {bpm:sustainMidLow, secs:Math.max(6,Math.round(jit(12*t.bs, 0.20))), phase:''},
+    {bpm:sustainLow,    secs:Math.max(6,Math.round(jit(10*t.bs, 0.20))), phase:''},
+  ];
+  // Shuffle dips so each edge's sustain has dips in different positions
+  shuffle(dips);
+  // Interleave: high → dip → high → dip → high (always start/end on a high)
+  bl.push(highs[0]);
+  bl.push(dips[0]);
+  bl.push(highs[1]);
+  bl.push(dips[1]);
+  bl.push(highs[2]);
+
+  bl._loopFrom = loopStart;
   return bl;
 }
 
+// ── SLOW BURN ─────────────────────────────────
+// Build: 6 long staircase steps (identity is the long climb, count stays fixed).
+// Sustain loop: peak with two small dips. Step durations and dip depths jitter.
 function pSlowBurn(edgeNum,lo,hi){
   const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/6);
-  const floor=lo+rng*0.22*prog, peak=lo+rng*0.90, t=dt();
+  const startFloor=lo+rng*0.22*prog, peak=lo+rng*0.90, t=dt();
   const bl=[];
+
+  // BUILD: 6 progressive steps, each duration jittered ±18%
   for(let s=0;s<6;s++){
     const f=(s+1)/6, e=f*f*(3-2*f);
-    bl.push({bpm:snap(floor+(peak-floor)*e),
-      secs:Math.max(28,Math.round((80-s*8)*t.bs)),
-      phase:f<0.4?'slowly building…':f<0.72?'rising…':'closing in…'});
+    const baseSecs = (80-s*8)*t.bs;
+    bl.push({bpm:snap(startFloor+(peak-startFloor)*e),
+      secs:Math.max(28,Math.round(jit(baseSecs, 0.18))),
+      phase:''});
   }
-  bl.push({bpm:snap(peak),secs:Math.round(55*t.hs),phase:'at peak — stay here'});
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: peak holds with two small dips. Dip depth varies per edge.
+  const dipPct1 = 0.90 + Math.random()*0.04;  // 90-94% of peak
+  const dipPct2 = 0.86 + Math.random()*0.04;  // 86-90% of peak
+  const peakLow1 = snap(peak * dipPct1);
+  const peakLow2 = snap(peak * dipPct2);
+
+  bl.push({bpm:snap(peak), secs:Math.max(28,Math.round(jit(70*t.hs, 0.18))), phase:''});
+  bl.push({bpm:peakLow1,   secs:Math.max(12,Math.round(jit(20*t.bs, 0.18))), phase:''});
+  bl.push({bpm:snap(peak), secs:Math.max(28,Math.round(jit(60*t.hs, 0.18))), phase:''});
+  bl.push({bpm:peakLow2,   secs:Math.max(10,Math.round(jit(18*t.bs, 0.18))), phase:''});
+  bl.push({bpm:snap(peak), secs:Math.max(28,Math.round(jit(80*t.hs, 0.18))), phase:''});
+
+  bl._loopFrom = loopStart;
   return bl;
 }
 
+// ── PULSE ─────────────────────────────────────
+// Build: 4 escalating burst+recover cycles.
+// Sustain loop: continuing bursts with tighter recovery.
+// Per-edge variation: burst/recover durations jitter, recovery floor varies.
 function pPulse(edgeNum,lo,hi){
   const rng=hi-lo, t=dt();
   const baseLow=lo+rng*0.18, peakHi=lo+rng*0.92;
   const bl=[];
-  bl.push({bpm:snap(lo+rng*0.28),secs:Math.round(22*t.bs),phase:'warming up…'});
+
+  // BUILD: warm-up + 4 escalating cycles
+  bl.push({bpm:snap(lo+rng*0.30), secs:Math.max(10,Math.round(jit(20*t.bs, 0.20))), phase:''});
   for(let c=0;c<4;c++){
     const f=(c+1)/4;
-    bl.push({bpm:snap(lo+rng*(0.52+f*0.40)),secs:Math.max(12,Math.round((18+c*5)*t.bs)),phase:'burst…'});
-    if(c<3) bl.push({bpm:snap(baseLow+rng*0.04*c),secs:Math.max(18,Math.round((42-c*5)*t.bs)),phase:'recover…'});
+    bl.push({bpm:snap(lo+rng*(0.52+f*0.40)),
+      secs:Math.max(10,Math.round(jit((18+c*5)*t.bs, 0.20))), phase:''});
+    if(c<3) bl.push({bpm:snap(baseLow+rng*0.04*c),
+      secs:Math.max(14,Math.round(jit((42-c*5)*t.bs, 0.20))), phase:''});
   }
-  bl.push({bpm:snap(peakHi),secs:Math.round(28*t.hs),phase:'peak burst — hold on'});
-  bl.push({bpm:snap(baseLow+rng*0.14),secs:Math.round(22*t.bs),phase:'recover…'});
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: peak bursts with elevated recovery (varies per edge)
+  // Recovery floor varies between 50-60% of range
+  const recoveryRatio = 0.50 + Math.random()*0.10;
+  const sustainRecover = lo + rng*recoveryRatio;
+  const sustainBurst1 = peakHi;
+  const sustainBurst2 = snap(lo + rng*(0.85 + Math.random()*0.07));
+
+  bl.push({bpm:snap(sustainBurst1),   secs:Math.max(12,Math.round(jit(30*t.hs, 0.20))), phase:''});
+  bl.push({bpm:snap(sustainRecover),  secs:Math.max(10,Math.round(jit(20*t.bs, 0.20))), phase:''});
+  bl.push({bpm:snap(sustainBurst2),   secs:Math.max(12,Math.round(jit(28*t.hs, 0.20))), phase:''});
+  bl.push({bpm:snap(sustainRecover+5),secs:Math.max(8,Math.round(jit(18*t.bs, 0.20))), phase:''});
+  bl.push({bpm:snap(sustainBurst1),   secs:Math.max(12,Math.round(jit(32*t.hs, 0.20))), phase:''});
+
+  bl._loopFrom = loopStart;
   return bl;
 }
 
+// ── ERRATIC ───────────────────────────────────
+// Already random per edge by design — kept as-is, full random regeneration.
 function pErratic(lo,hi){
   const mn=CFG.diff==='hard'?15:CFG.diff==='easy'?40:25;
   const mx=CFG.diff==='hard'?75:CFG.diff==='easy'?130:100;
   const bl=[];
-  for(let i=0;i<8+Math.floor(Math.random()*5);i++)
-    bl.push({bpm:snap(rnd(lo,hi)),secs:Math.round(rnd(mn,mx)),phase:'?'});
+  const buildCount = 3;
+  for(let i=0;i<buildCount;i++){
+    const buildHi = lo + (hi-lo)*0.7;
+    bl.push({bpm:snap(rnd(lo,buildHi)),secs:Math.round(rnd(mn,mx)),phase:''});
+  }
+  const loopStart = bl.length;
+  const sustainCount = 6+Math.floor(Math.random()*3);
+  const sustainLo = lo + (hi-lo)*0.45;
+  for(let i=0;i<sustainCount;i++){
+    bl.push({bpm:snap(rnd(sustainLo,hi)),secs:Math.round(rnd(mn,mx)),phase:''});
+  }
+  bl._loopFrom = loopStart;
   return bl;
+}
+
+// ── SUSTAIN ZONE PATTERN ──────────────────────────────────────────
+// Used by Adaptive Sustain after check-ins/quick-taps, AND by Adaptive
+// Build after check-ins (to hold the player near a calculated target
+// rather than rebuilding from floor).
+// Stays near the TARGET bpm — never drops back to the floor.
+function pSustainZone(targetBpm,lo,hi){
+  const t=Math.max(lo, Math.min(hi, targetBpm));
+  const yStreak = (G.profile && G.profile.yellowStreak) || 0;
+  let bandMin, bandMax;
+  if(yStreak>=3)      { bandMin=4;  bandMax=8;  }
+  else if(yStreak>=2) { bandMin=6;  bandMax=12; }
+  else                { bandMin=8;  bandMax=16; }
+  const band=Math.max(bandMin, Math.min(bandMax, (hi-lo)*0.25));
+  const low=Math.max(lo, snap(t-band));
+  const high=Math.min(hi, snap(t+band*0.5));
+
+  const wobble=snap(rnd(0,5));
+  const highW=Math.min(hi, snap(high+wobble));
+  const lowW=Math.max(lo, snap(low+wobble*0.5));
+
+  const useFalseDrop = Math.random() < 0.25;
+
+  if(useFalseDrop){
+    const falseDropSecs = snap(rnd(28,35));
+    return [
+      {bpm:snap(high),  secs:18, phase:''},
+      {bpm:snap(low),   secs:12, phase:''},
+      {bpm:highW,       secs:20, phase:''},
+      {bpm:lowW,        secs:falseDropSecs, phase:''},
+      {bpm:Math.min(hi,snap(high+3)), secs:24, phase:''},
+      {bpm:snap(low),   secs:14, phase:''},
+    ];
+  }
+
+  return [
+    {bpm:snap(high),  secs:20, phase:''},
+    {bpm:snap(low),   secs:14, phase:''},
+    {bpm:highW,       secs:22, phase:''},
+    {bpm:lowW,        secs:12, phase:''},
+    {bpm:snap(high),  secs:24, phase:''},
+    {bpm:snap(low),   secs:14, phase:''},
+  ];
 }
 
 // Returns a full block array for the given preset/adaptive settings.
@@ -707,18 +972,26 @@ function buildBlocks(preset,edgeNum,lo,hi){
   }
 }
 
-// Main entry — resolves preset and adaptive ranges, then builds blocks
-function getBlocks(edgeNum){
+// Main entry — resolves preset and adaptive ranges, then builds blocks.
+// sustainTarget: for asustain adaptations, the BPM to stay near (not rebuild from floor).
+//   Pass null/undefined for the initial session start (uses sub-pattern normally).
+function getBlocks(edgeNum, sustainTarget){
   const preset=CFG.preset;
   if(preset==='abuild'){
-    // Goal: reach the edge. Use adaptive ceiling/floor, waves pattern
     return buildBlocks('waves',edgeNum,G.adFloor,G.adCeiling);
   }
   if(preset==='asustain'){
-    // Goal: sustain at edge. Use adaptive ceiling/floor, chosen sub-pattern
-    return buildBlocks(CFG.sustainPat,edgeNum,G.adFloor,G.adCeiling);
+    if(sustainTarget!=null){
+      // After a check-in: use the zone pattern — stay near where the player is
+      return pSustainZone(sustainTarget, G.adFloor, G.adCeiling);
+    }else{
+      // Initial session start: use the chosen sub-pattern to build up normally
+      // Start from ~40% of the way through the range so it doesn't open at minimum
+      const startLo = Math.round(CFG.minBpm + (CFG.maxBpm - CFG.minBpm) * 0.35);
+      const startHi = CFG.maxBpm;
+      return buildBlocks(CFG.sustainPat, edgeNum, startLo, startHi);
+    }
   }
-  // Standard presets use CFG bpm range
   return buildBlocks(preset,edgeNum,CFG.minBpm,CFG.maxBpm);
 }
 
@@ -729,7 +1002,8 @@ const PK='tme_profile_v2';
 function loadProf(){
   try{
     const r=localStorage.getItem(PK);
-    G.profile=r?JSON.parse(r):{edgeBpm:null,sessions:0};
+    const parsed = r ? JSON.parse(r) : null;
+    G.profile = (parsed && typeof parsed === 'object') ? parsed : {edgeBpm:null,sessions:0};
   }catch(e){G.profile={edgeBpm:null,sessions:0};}
   // Initialise adaptive range from profile knowledge
   if(G.profile.edgeBpm){
@@ -742,15 +1016,19 @@ function loadProf(){
   }
 }
 function saveProf(){
+  if(!G.profile || typeof G.profile !== 'object') return;
   try{localStorage.setItem(PK,JSON.stringify(G.profile));}catch(e){}
 }
 
 // ── CHECK-INS ─────────────────────────────────
-// Reverted to ~90s first, ~75s subsequent — less disruptive.
-// "I'm close" button handles the immediate response instead.
+// Asymmetric timing: first check-in 60–120s, subsequent 45–110s.
+// Randomized to prevent the player from settling into a predictable rhythm.
+// Quick-tap traffic light handles between-check-in needs.
 function schCI(){
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-  const delay=G.lastCI===0?90000:75000;
+  const delay = G.lastCI===0
+    ? snap(rnd(60000, 120000))
+    : snap(rnd(45000, 110000));
   G.ciTimer=setTimeout(showCI,delay);
 }
 function showCI(){
@@ -764,31 +1042,258 @@ function showCI(){
 function ciR(level){
   document.getElementById('ciO').classList.remove('show');
   G.lastCI=Date.now();
+  // Mandatory check-ins override any pending tap-triggered change
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
   applyAdaptive(level,false);
   schCI();
 }
 
-// ── "I'M CLOSE" immediate button ──────────────
+// ── "I'M CLOSE" immediate button — SUSTAIN MODE ONLY ──────────────
 function playerClose(){
+  if(CFG.preset!=='asustain') return; // guard: button should never appear in build mode
   resAC();
-  // Dismiss check-in overlay if open
   document.getElementById('ciO').classList.remove('show');
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  // ⚡ overrides any pending tap-triggered change
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
   applyAdaptive('edge',true);
   schCI();
+}
+
+// ── ALWAYS-AVAILABLE TRAFFIC LIGHTS ────────────────────────────
+// Quick taps log every press. Triggering taps (those that should change
+// the pattern) schedule the change ~2 seconds later — long enough for
+// the player to register that it was received without the music suddenly
+// snapping. Cooldown is invisible (45s) — taps during cooldown log only.
+const TAP_DELAY_MS = 2000;
+
+function showTapAck(level, willTrigger){
+  const ack = document.getElementById('tlAck');
+  if(!ack) return;
+  const isSus = CFG.preset==='asustain';
+  ack.classList.remove('tlg','tly','tlr','show');
+  void ack.offsetWidth;
+  let txt;
+  if(level==='far'){
+    ack.classList.add('tlg');
+    txt = willTrigger ? 'pushing harder…' : 'noted';
+  }else if(level==='close'){
+    ack.classList.add('tly');
+    txt = 'noted';
+  }else{
+    // RED — different intent in each mode
+    ack.classList.add('tlr');
+    if(willTrigger){
+      // Build mode: red = stay here, you're nearly there
+      // Sustain mode: red = ease me back a bit
+      txt = isSus ? 'easing back…' : 'holding…';
+    }else{
+      txt = 'noted';
+    }
+  }
+  ack.textContent = txt;
+  ack.classList.add('show');
+  clearTimeout(G._tlAckTimer);
+  G._tlAckTimer = setTimeout(()=>{
+    if(ack) ack.classList.remove('show');
+  }, willTrigger ? 1900 : 1100);
+}
+
+function flashTapButton(level){
+  const id = level==='far'?'tlG':level==='close'?'tlY':'tlR';
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  btn.classList.remove('flash'); void btn.offsetWidth; // restart animation
+  btn.classList.add('flash');
+  // Sustained glow for 1.4s (matches ring animation)
+  setTimeout(()=>btn && btn.classList.remove('flash'), 1400);
+}
+
+function quickTap(level){
+  const isAd = CFG.preset==='abuild' || CFG.preset==='asustain';
+  if(!isAd) return;
+  resAC();
+
+  const now = Date.now();
+  // Log the tap (always — for analytics and silent profile updates)
+  G.quickTaps.push({level,time:now,bpm:G.currentBpm});
+  if(G.profile){
+    if(!G.profile.quickTapLog) G.profile.quickTapLog=[];
+    G.profile.quickTapLog.push({level,bpm:G.currentBpm,time:now});
+    if(G.profile.quickTapLog.length>50) G.profile.quickTapLog.shift();
+  }
+
+  // Always provide button flash feedback so the tap visibly registers
+  flashTapButton(level);
+
+  // Determine whether this tap WILL trigger an immediate pattern change
+  // (so we can show the right acknowledgement text)
+  const willTrigger = computeWillTrigger(level, now);
+
+  // Show acknowledgement text under the buttons
+  showTapAck(level, willTrigger);
+
+  // In cooldown OR a pending change is already queued — just log, no new change
+  if(now < G.quickCooldownUntil || G.pendingTapTimer){
+    silentProfileUpdate(level);
+    saveProf();
+    return;
+  }
+
+  if(!willTrigger){
+    // Tap is logged but doesn't trigger an immediate change
+    silentProfileUpdate(level);
+    saveProf();
+    return;
+  }
+
+  // Schedule the actual pattern change after a short delay so the player
+  // sees their input registered before the metronome shifts
+  G.pendingTapTimer = setTimeout(()=>{
+    G.pendingTapTimer = null;
+    applyTapChange(level, now);
+  }, TAP_DELAY_MS);
+}
+
+// Determine whether a given tap WOULD trigger a pattern change right now.
+// Mirrors the conditions in applyTapChange. Used purely for ack messaging.
+function computeWillTrigger(level, now){
+  // Yellow never triggers
+  if(level==='close') return false;
+  const isSus = CFG.preset==='asustain';
+  const rangeMid = (G.adFloor + G.adCeiling) / 2;
+  const inHighPhase = G.currentBpm >= rangeMid;
+
+  if(isSus){
+    if(level==='edge'){
+      // Sustain red always triggers a meaningful response — even in low phase
+      // it lowers the upcoming high target so the user feels the listening.
+      return true;
+    }
+    if(level==='far'){
+      // 🟢 triggers in low phase only
+      return !inHighPhase;
+    }
+  }else{
+    // build mode: both 🔴 and 🟢 only trigger in high phase
+    if(level==='edge') return inHighPhase;
+    if(level==='far')  return inHighPhase;
+  }
+  return false;
+}
+
+// Actually apply the pattern change. Called from the delayed timeout.
+function applyTapChange(level, tapTime){
+  const isSus = CFG.preset==='asustain';
+  const bpm = G.currentBpm;
+  const rangeMid = (G.adFloor + G.adCeiling) / 2;
+  const inHighPhase = bpm >= rangeMid;
+  let triggered = false;
+
+  if(isSus){
+    if(level==='edge'){
+      // Sustain RED — always meaningfully respond. The user is signalling
+      // distress; even if currently in a low phase, they're saying the next
+      // high will tip them. Drop the target so the upcoming highs are lower.
+      G.recentReds = G.recentReds.filter(t => Date.now() - t < 30000);
+      G.recentReds.push(tapTime);
+
+      // Reference BPM: if currently in high phase use current bpm; if in low
+      // phase use the adCeiling (the high we were heading toward) so we drop
+      // FROM the upcoming high, not from the current low.
+      const refBpm = inHighPhase ? bpm : G.adCeiling;
+
+      // Drop magnitude scales with red frequency:
+      //   1st red: 9% drop  (gentle ease-back)
+      //   2nd red within 30s: 15% drop (firmer)
+      //   3+ reds within 30s: 22% drop (the user really needs relief)
+      let factor;
+      if(G.recentReds.length >= 3) factor = 0.78;
+      else if(G.recentReds.length >= 2) factor = 0.85;
+      else factor = 0.91;
+
+      const target = Math.max(CFG.minBpm, snap(refBpm * factor));
+      G.adCeiling = Math.min(CFG.maxBpm, target + 12);
+      G.adFloor   = Math.max(CFG.minBpm, target - 8);
+      G.adFloor   = Math.min(G.adFloor, G.adCeiling - 10);
+      if(!G.profile) G.profile={edgeBpm:null,sessions:0};
+      // Update edge speed estimate
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(refBpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6 + refBpm*0.4);
+
+      startMetroSmooth(getBlocks(G.currentEdge, target));
+      triggered = true;
+
+    }else if(level==='far'){
+      if(!inHighPhase){
+        const target = Math.min(CFG.maxBpm, snap(bpm + 12));
+        G.adCeiling = Math.min(CFG.maxBpm, target + 14);
+        G.adFloor   = Math.max(CFG.minBpm, target - 10);
+        G.adFloor   = Math.min(G.adFloor, G.adCeiling - 10);
+        startMetroSmooth(getBlocks(G.currentEdge, target));
+        triggered = true;
+      }
+    }
+  }else{
+    // BUILD mode
+    if(level==='edge'){
+      if(inHighPhase){
+        const target = snap(bpm);
+        G.adCeiling = Math.min(CFG.maxBpm, target + 8);
+        G.adFloor   = Math.max(CFG.minBpm, target - 12);
+        G.adFloor   = Math.min(G.adFloor, G.adCeiling - 10);
+        if(!G.profile) G.profile={edgeBpm:null,sessions:0};
+        if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(bpm);
+        else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6 + bpm*0.4);
+        startMetroSmooth(pSustainZone(target, G.adFloor, G.adCeiling));
+        triggered = true;
+      }
+    }else if(level==='far'){
+      if(inHighPhase){
+        G.adCeiling = Math.min(CFG.maxBpm, G.adCeiling + 12);
+        G.adFloor   = Math.min(G.adCeiling - 15, G.adFloor + 4);
+        G.adFloor   = Math.max(CFG.minBpm, G.adFloor);
+        const target = Math.min(CFG.maxBpm, snap(bpm + 8));
+        startMetroSmooth(pSustainZone(target, G.adFloor, G.adCeiling));
+        triggered = true;
+      }
+    }
+  }
+
+  if(triggered){
+    G.quickCooldownUntil = Date.now() + 45000;
+  }
+
+  silentProfileUpdate(level);
+  saveProf();
+}
+
+// Update profile data from a quick tap regardless of whether it triggered
+function silentProfileUpdate(level){
+  if(!G.profile) return;
+  // Greens during high phase = ceiling could go higher next mandatory cycle
+  // Reds during low phase = ceiling probably too high overall
+  // (Used by next check-in cycle to bias responses)
+  if(!G.profile.silentSignal) G.profile.silentSignal=0;
+  const rangeMid = (G.adFloor + G.adCeiling) / 2;
+  const inHighPhase = G.currentBpm >= rangeMid;
+  if(level==='far' && inHighPhase) G.profile.silentSignal++;        // can push harder
+  if(level==='edge' && !inHighPhase) G.profile.silentSignal--;      // ceiling too high
+  // Bound the signal
+  G.profile.silentSignal = Math.max(-5, Math.min(5, G.profile.silentSignal));
 }
 
 // ── CORE ADAPTIVE LOGIC ────────────────────────
 // BUILD goal: get player to their edge.
 //   - green (far off) → push ceiling up hard, rebuild
 //   - yellow (close) → nudge ceiling up, rebuild
-//   - red (right there) → hold/nudge up slightly — they're nearly there, tip them over
-//   - fromClose → same as red
+//   - red (right there) → hold/nudge up slightly — they're nearly there
 //
 // SUSTAIN goal: keep player at the edge without going over.
 //   - green (far off) → push speed up
 //   - yellow (close) → tiny nudge up, maintain tension
-//   - red (right there) / fromClose → back off meaningfully right now
+//   - red check-in → small step back
+//   - fromClose (⚡) → drop to minimum immediately
 function applyAdaptive(level,fromClose){
   const bpm=G.currentBpm;
   const isSus=CFG.preset==='asustain';
@@ -796,51 +1301,136 @@ function applyAdaptive(level,fromClose){
 
   if(isSus){
     // ── SUSTAIN ──────────────────────────────────
-    if(level==='edge'||fromClose){
-      // At/over edge — drop speed immediately to pull them back
-      const drop=Math.max(CFG.minBpm, snap(bpm*0.80));
-      G.adCeiling=drop+12;
-      G.adFloor=Math.max(CFG.minBpm, drop-15);
-      // Update edge estimate
+    // Goal: keep the player oscillating between yellow and red.
+    if(!G.profile.sustainReds) G.profile.sustainReds=0;
+    if(!G.profile.yellowStreak) G.profile.yellowStreak=0;
+    if(!G.profile.zapCount) G.profile.zapCount=0;
+
+    let sustainTarget; // the BPM to oscillate around after this response
+
+    if(fromClose){
+      // ⚡ "I'm close" — emergency drop. ALWAYS drops to minimum (full mercy
+      // is non-negotiable). But the game tracks how often this happens —
+      // the more they press it, the less runway they get on recovery.
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak=0;
+      G.profile.lastWasEmergency=true;
+      G.profile.zapCount++;
+      sustainTarget = CFG.minBpm;
       if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
       else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
+      G.adCeiling = Math.min(CFG.maxBpm, CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*0.55);
+      G.adFloor   = CFG.minBpm;
+
+    }else if(level==='edge'){
+      // Check-in red — small deliberate step back.
+      G.profile.lastWasEmergency=false;
+      G.profile.yellowStreak=0;
+      G.profile.sustainReds++;
+      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
+      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
+      const dropFactor = G.profile.sustainReds>=3 ? 0.88 : 0.93;
+      sustainTarget = Math.max(CFG.minBpm, snap(bpm * dropFactor));
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
+
     }else if(level==='close'){
-      // Perfect — tiny nudge up to maintain the tension
-      const nudge=Math.min(CFG.maxBpm, snap(bpm+5));
-      G.adCeiling=nudge+10;
-      G.adFloor=Math.max(CFG.minBpm, nudge-20);
+      // Yellow — perfect zone. Track the streak (band narrows on repeats).
+      G.profile.lastWasEmergency=false;
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak++;
+      const wobble = snap(Math.random()*5 - 1); // -1 to +4
+      sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 3 + wobble));
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
+
     }else{
-      // Far off — push harder
-      const push=Math.min(CFG.maxBpm, snap(bpm+16));
-      G.adCeiling=push+10;
-      G.adFloor=Math.max(CFG.minBpm, push-20);
+      // Green — too far off.
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak=0;
+      // After ⚡: jump back faster the more times they've pressed it this session.
+      // 1st ⚡ recovery: 88% of edge speed (gentle)
+      // 2nd ⚡ recovery: 95% of edge speed (closer)
+      // 3rd+ ⚡ recovery: 100% — straight back to edge speed
+      if(G.profile.lastWasEmergency && G.profile.edgeBpm){
+        const recoveryFactor = G.profile.zapCount>=3 ? 1.00
+                             : G.profile.zapCount>=2 ? 0.95
+                             : 0.88;
+        sustainTarget = Math.min(CFG.maxBpm, snap(G.profile.edgeBpm * recoveryFactor));
+      }else if(G.profile.lastWasEmergency){
+        // No edge estimate — jump higher each subsequent ⚡
+        const rangeRatio = G.profile.zapCount>=3 ? 0.80
+                         : G.profile.zapCount>=2 ? 0.72
+                         : 0.65;
+        sustainTarget = Math.min(CFG.maxBpm, snap(CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*rangeRatio));
+      }else{
+        sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 16));
+      }
+      G.profile.lastWasEmergency=false;
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
     }
-    // Rebuild sustain pattern with new range
-    startMetro(getBlocks(G.currentEdge));
+
+    // Ensure floor never meets or exceeds ceiling
+    G.adFloor = Math.min(G.adFloor, G.adCeiling - 10);
+    G.adFloor = Math.max(CFG.minBpm, G.adFloor);
+
+    // Use zone pattern — stays near sustainTarget, never rebuilds from floor
+    startMetroSmooth(getBlocks(G.currentEdge, sustainTarget));
 
   }else{
     // ── BUILD ─────────────────────────────────────
-    if(level==='edge'||fromClose){
-      // Right there — hold this speed or nudge slightly higher to tip them over
-      const target=fromClose?Math.min(CFG.maxBpm,snap(bpm+5)):snap(bpm);
-      G.adCeiling=Math.min(CFG.maxBpm, target+8);
-      G.adFloor=Math.max(CFG.minBpm, target-20);
-      // Record this as their edge speed
-      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
-      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.6+bpm*0.4);
+    // Goal: escalate the player toward their edge.
+    // The silentSignal accumulated from quick-tap data biases the response:
+    // positive signal = player has been hitting green during high phases,
+    // so push harder. Negative = they've been hitting red during low,
+    // so the ceiling is too high overall.
+    const sig = (G.profile.silentSignal||0);
+    let buildTarget; // the BPM to hold around after this response
+
+    if(level==='edge'){
+      // Right at the edge — hold this speed to keep them there (and tip over)
+      buildTarget = snap(bpm);
+      G.adCeiling = Math.min(CFG.maxBpm, buildTarget + 8);
+      G.adFloor   = Math.max(CFG.minBpm, buildTarget - 18);
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(bpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6+bpm*0.4);
+
     }else if(level==='close'){
-      // Getting there — nudge ceiling up
-      G.adCeiling=Math.min(CFG.maxBpm, G.adCeiling+12);
+      // Yellow — getting close. Push them a meaningful step closer to edge.
+      // Use known edge speed as anchor if we have one; otherwise nudge from current.
+      if(G.profile.edgeBpm){
+        // Aim for ~92% of edge speed — close enough to feel the pressure
+        buildTarget = Math.min(CFG.maxBpm, Math.max(bpm + 5, snap(G.profile.edgeBpm * 0.92 + sig)));
+      }else{
+        // No edge estimate — push 8-12 bpm above current
+        buildTarget = Math.min(CFG.maxBpm, snap(bpm + 10 + Math.max(0,sig)*2));
+      }
+      G.adCeiling = Math.min(CFG.maxBpm, buildTarget + 14);
+      G.adFloor   = Math.max(CFG.minBpm, buildTarget - 14);
+
     }else{
-      // Far off — push harder
-      G.adCeiling=Math.min(CFG.maxBpm, G.adCeiling+20);
-      G.adFloor=Math.min(G.adCeiling-20, G.adFloor+8);
+      // Green — far off. Push hard toward known edge speed (or significantly higher).
+      if(G.profile.edgeBpm){
+        // Jump toward edge speed — they said they're far off, so push closer
+        buildTarget = Math.min(CFG.maxBpm, Math.max(bpm + 12, snap(G.profile.edgeBpm * 0.85 + sig*2)));
+      }else{
+        // No edge estimate — significant push, scaled by quick-tap signal
+        buildTarget = Math.min(CFG.maxBpm, snap(bpm + 18 + Math.max(0,sig)*3));
+      }
+      G.adCeiling = Math.min(CFG.maxBpm, buildTarget + 14);
+      G.adFloor   = Math.max(CFG.minBpm, buildTarget - 12);
     }
+
+    // Drain the silent signal after applying it
+    G.profile.silentSignal = 0;
     // Clamp floor always below ceiling
-    G.adFloor=Math.min(G.adFloor, G.adCeiling-15);
-    G.adFloor=Math.max(CFG.minBpm, G.adFloor);
-    // Rebuild build pattern with new range
-    startMetro(getBlocks(G.currentEdge));
+    G.adFloor = Math.min(G.adFloor, G.adCeiling - 12);
+    G.adFloor = Math.max(CFG.minBpm, G.adFloor);
+
+    // Use sustain-zone pattern to hold near buildTarget — does NOT rebuild
+    // from floor. The player feels their tap/check-in actually moved them.
+    startMetroSmooth(pSustainZone(buildTarget, G.adFloor, G.adCeiling));
   }
   saveProf();
 }
@@ -860,6 +1450,7 @@ function startSustainTimer(){
       clearInterval(G.sustainTimer);G.sustainTimer=null;
       stopMetro();
       if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+      if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
       document.getElementById('ciO').classList.remove('show');
       showSummary();
     }
@@ -885,6 +1476,12 @@ function startSession(){
   G.sessionStart=Date.now();G.lastCI=0;
   G.adFloor=CFG.minBpm;G.adCeiling=CFG.maxBpm;
   G.profile=null;
+  G.peakBpmSeen=0; // track highest BPM reached during session (needed for sustain summary)
+  // Quick-tap (always-available traffic-light) state — per session
+  G.quickTaps=[];           // log of all taps with timestamps
+  G.quickCooldownUntil=0;   // taps before this time can't trigger pattern changes
+  G.recentReds=[];          // for "two reds within 30s" detection
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
 
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   const isSus=CFG.preset==='asustain';
@@ -894,10 +1491,12 @@ function startSession(){
   badge.style.display=isAd?'inline-flex':'none';
   badge.textContent=isSus?'⬡ ADAPTIVE SUSTAIN':'⬡ ADAPTIVE BUILD';
 
-  // Button visibility
-  document.getElementById('closeBtn').style.display=isAd?'':'none';
+  // ⚡ "I'm close" button: sustain only. Build uses "I've Edged" instead.
+  document.getElementById('closeBtn').style.display=isSus?'':'none';
   document.getElementById('edgedBtn').style.display=isSus?'none':'';
   document.getElementById('stWrap').style.display='none';
+  // Always-available traffic-light strip: shown for both adaptive modes
+  document.getElementById('tlights').style.display=isAd?'flex':'none';
 
   if(isAd)loadProf();
   buildPips();
@@ -927,9 +1526,26 @@ function beginEdge(){
   G.currentEdge++;
   G.edgeStarts.push(Date.now());
   resAC();
+
+  // For Adaptive Build: every fresh edge needs a build-up. Reset the floor
+  // back to a low value so the wave pattern climbs from low to the ceiling
+  // (which may have been elevated from the last edge's check-ins). This
+  // makes subsequent edges climb FASTER than the first (because the ceiling
+  // is already elevated) but still gives a proper build-up sensation.
+  if(CFG.preset==='abuild' && G.currentEdge > 1){
+    G.adFloor = CFG.minBpm;
+    // Cap ceiling at maxBpm but otherwise leave it where the previous edge ended
+    G.adCeiling = Math.min(CFG.maxBpm, Math.max(G.adFloor + 25, G.adCeiling));
+  }
+
   startMetro(getBlocks(G.currentEdge));
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
-  if(isAd)schCI();
+  if(isAd){
+    // Reset lastCI so the first check-in of each new edge always waits 90s,
+    // not 75s from wherever the previous edge left off.
+    G.lastCI=0;
+    schCI();
+  }
 }
 
 function recordEdge(over){
@@ -941,6 +1557,7 @@ function recordEdge(over){
 function afterEdge(){
   stopMetro();
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
   document.getElementById('ciO').classList.remove('show');
 
   // Check if target reached
@@ -962,7 +1579,18 @@ function afterEdge(){
 }
 
 function playerEdged(){resAC();recordEdge(false);afterEdge();}
-function wentOver(){resAC();recordEdge(true);afterEdge();}
+function wentOver(){
+  resAC();
+  recordEdge(true);
+  // Going over ends the session immediately
+  stopMetro();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
+  document.getElementById('ciO').classList.remove('show');
+  showSummary();
+}
 
 function startBreak(){
   // Clear any existing timer
@@ -974,23 +1602,27 @@ function startBreak(){
   G.breakRemaining=Math.max(1,CFG.breakSecs);
 
   function tick(){
-    // Update display first
-    document.getElementById('brkN').textContent=G.breakRemaining;
+    // Decrement first, then display — so countdown goes 30→29→...→1→fires (never shows 0)
+    G.breakRemaining--;
     if(G.breakRemaining<=0){
-      // Stop the interval before calling startNextEdge to prevent any double-firing
+      document.getElementById('brkN').textContent='0';
       clearInterval(G.breakTimer);
       G.breakTimer=null;
       startNextEdge();
       return;
     }
-    G.breakRemaining--;
+    document.getElementById('brkN').textContent=G.breakRemaining;
   }
-  tick(); // show initial count immediately
+  // Show initial value before first tick
+  document.getElementById('brkN').textContent=G.breakRemaining;
   G.breakTimer=setInterval(tick,1000);
 }
 
 // startNextEdge: transitions to play screen and starts the next edge.
+// Guards against double-firing from rapid taps.
 function startNextEdge(){
+  // If we're already on the play screen, ignore — a metronome is already running
+  if(document.getElementById('scrPlay').classList.contains('active')) return;
   // Clear break timer if still running (e.g. user pressed Skip)
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
   // Show play screen BEFORE starting metronome
@@ -1003,6 +1635,7 @@ function endSession(){
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
   document.getElementById('ciO').classList.remove('show');
   showSummary();
 }
@@ -1016,7 +1649,8 @@ function showSummary(){
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   const clean=G.edges.filter(e=>!e.over).length;
   const over=G.edges.filter(e=>e.over).length;
-  const peak=G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):Math.round(G.currentBpm);
+  // For sustain, edges array is empty — use the tracked session peak instead
+  const peak=isSus ? G.peakBpmSeen : (G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):G.peakBpmSeen);
   const m=Math.floor(tot/60),s=tot%60;
   const tStr=m>0?`${m}m ${s}s`:`${s}s`;
   const pLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic',
@@ -1024,10 +1658,11 @@ function showSummary(){
 
   let html=`<div class="card-title">Results</div>`;
   if(isSus){
-    html+=`<div class="ss"><span class="l">Time sustained</span><span class="v cgr">${tStr}</span></div>`;
+    html+=`<div class="ss"><span class="l">Held on for</span><span class="v cgr">${tStr}</span></div>`;
+    if(over>0) html+=`<div class="ss"><span class="l">Went over</span><span class="v cr">Yes</span></div>`;
     html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
     if(G.profile&&G.profile.edgeBpm)
-      html+=`<div class="ss"><span class="l">Estimated edge speed</span><span class="v ca">${G.profile.edgeBpm} bpm</span></div>`;
+      html+=`<div class="ss"><span class="l">Your edge speed <small style="color:var(--muted);font-size:.8rem;">(inferred from check-ins)</small></span><span class="v ca">${G.profile.edgeBpm} bpm</span></div>`;
     html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
     const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
     html+=`<div class="ss"><span class="l">Sub-pattern</span><span class="v">${spLabel}</span></div>`;
@@ -1064,44 +1699,42 @@ function showSummary(){
 
   // Share text
   const url='https://curiouspirategames.github.io/MetronomeEdger/';
-  const lines=['🎵 The Metronome Edger — Session Complete',''];
+  const diffStr=!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):'';
+  const sep='─────────────────────────';
+  const shareLines=[];
+
+  shareLines.push(sep);
+  shareLines.push('🎵 The Metronome Edger 🎵');
+
   if(isSus){
-    lines.push(`⏱ Sustained for: ${tStr}`);
-    lines.push(`📈 Peak speed: ${peak} bpm`);
-    if(G.profile&&G.profile.edgeBpm)lines.push(`🎯 Edge estimate: ${G.profile.edgeBpm} bpm`);
+    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+    shareLines.push(`Pattern: ${pLabel}${spLabel?' · '+spLabel:''}`);
+    shareLines.push(`⏱ ${tStr}  ·  📈 Peak: ${peak} bpm${G.profile&&G.profile.edgeBpm?'  ·  🎯 Edge: ~'+G.profile.edgeBpm+' bpm':''}`);
+    if(over>0) shareLines.push(`⚠ Went over the edge`);
   }else{
-    lines.push(`✦ Edges: ${clean}${over>0?`  ⚠ Over: ${over}`:''}`);
-    lines.push(`⏱ Time: ${tStr}  ·  Peak: ${peak} bpm`);
-    if(G.edges.length>0){
-      lines.push('');lines.push('Splits:');
-      G.edges.forEach((e,i)=>{
-        const em=Math.floor(e.duration/60),es=e.duration%60;
-        const d=em>0?`${em}m ${es}s`:`${es}s`;
-        lines.push(`  ${i+1}. ${d} @ ${e.bpm} bpm${e.over?' ⚠':' ✓'}`);
-      });
+    shareLines.push(`Pattern: ${pLabel}${diffStr}`);
+    let statsLine=`✦ Edges: ${clean}  ·  ⏱ ${tStr}  ·  📈 Peak: ${peak} bpm`;
+    shareLines.push(statsLine);
+    if(over>0) shareLines.push(`⚠ Went over the edge`);
+    if(G.edges.filter(e=>!e.over).length>0){
+      const splitParts=G.edges
+        .map((e,i)=>({e,n:i+1}))          // keep original edge number
+        .filter(({e})=>!e.over)
+        .map(({e,n})=>{
+          const em=Math.floor(e.duration/60),es=e.duration%60;
+          const d=em>0?`${em}m${es}s`:`${es}s`;
+          return `${n}.${d} @ ${e.bpm} bpm`;
+        });
+      shareLines.push(`Splits: ${splitParts.join('  |  ')}`);
     }
   }
-  lines.push('');
-  lines.push(`📋 ${pLabel}${!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):''}`);
-  lines.push('');
-  lines.push(getRating(clean,over,isSus,tStr));
-  lines.push('');
-  lines.push(url);
-  document.getElementById('shareBox').textContent=lines.join('\n');
+
+  shareLines.push(url);
+  shareLines.push(sep);
+  document.getElementById('shareBox').textContent=shareLines.join('\n');
 
   showScreen('scrSummary');
   if(G.profile){G.profile.sessions=(G.profile.sessions||0)+1;saveProf();}
-}
-
-function getRating(c,o,isSus,t){
-  if(isSus)return`Held the edge for ${t}. Every second at the edge is a win.`;
-  if(c===0&&o>0)return'Went over before edging — try a lower difficulty.';
-  if(c===0)return'Session ended early — no edges counted.';
-  if(o===0&&c>=5)return'Exceptional control. Every edge held perfectly.';
-  if(o===0&&c>=3)return'Clean session — solid discipline throughout.';
-  if(o===0)return'Clean edges. Good control.';
-  if(o<c)return'Strong session despite going over — control is building.';
-  return'Tough session. Keep training that edge awareness.';
 }
 
 // ════════════════════════════════════════════
@@ -1140,6 +1773,7 @@ function resetAll(){
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  if(G.pendingTapTimer){clearTimeout(G.pendingTapTimer);G.pendingTapTimer=null;}
   document.getElementById('ciO').classList.remove('show');
   showScreen('scrWelcome');
 }
