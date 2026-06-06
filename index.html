@@ -160,26 +160,35 @@ input[type=range]::-webkit-slider-runnable-track{
 .ep.done{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px var(--glow);}
 .ep.over{background:var(--red);border-color:var(--red);}
 
-.cio{position:fixed;inset:0;background:rgba(10,13,20,.93);
+.cio{position:fixed;inset:0;background:#070d18;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  z-index:100;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+  z-index:100;padding:24px 20px;opacity:0;pointer-events:none;transition:opacity .3s;}
 .cio.show{opacity:1;pointer-events:all;}
+.ci-inner-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;}
 .cit{font-family:'Cinzel',serif;font-size:1.15rem;letter-spacing:.12em;
   color:var(--text);text-align:center;margin-bottom:5px;}
-.cis{color:var(--muted);font-style:italic;font-size:1rem;text-align:center;
-  margin-bottom:22px;line-height:1.5;}
-.cibs{display:flex;gap:16px;justify-content:center;}
-.cib{width:76px;height:76px;border-radius:50%;font-size:2.1rem;cursor:pointer;
-  border:3px solid transparent;display:flex;align-items:center;justify-content:center;
-  transition:all .18s;}
-.cib:active{transform:scale(.9);}
-.ci-g{background:rgba(52,211,153,.15);border-color:var(--green);}
-.ci-y{background:rgba(251,191,36,.15);border-color:var(--gold);}
-.ci-r{background:rgba(248,113,113,.15);border-color:var(--red);}
-.cilbl{display:flex;gap:16px;justify-content:center;margin-top:7px;}
-.cilbl span{width:76px;text-align:center;font-size:.83rem;color:var(--muted);}
+/* ── 5-CARD CHECK-IN ── */
 .ci-mode{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.15em;
-  text-transform:uppercase;color:var(--accent2);margin-bottom:14px;}
+  text-transform:uppercase;color:var(--accent2);margin-bottom:14px;text-align:center;}
+.cis{color:var(--muted);font-style:italic;font-size:.95rem;text-align:center;
+  margin-bottom:18px;line-height:1.5;}
+.ci-cards{display:flex;flex-direction:column;gap:8px;width:100%;}
+.ci-card{
+  width:100%;border-radius:10px;display:flex;align-items:center;
+  gap:0;cursor:pointer;border:none;overflow:hidden;
+  transition:transform .12s, filter .12s;
+}
+.ci-card:active{transform:scale(.98);filter:brightness(1.12);}
+.ci-bar{flex-shrink:0;align-self:stretch;}
+.ci-inner{
+  flex:1;display:flex;align-items:center;
+  justify-content:space-between;
+}
+.ci-text{
+  font-family:'Cinzel',serif;font-size:.82rem;
+  letter-spacing:.12em;text-transform:uppercase;font-weight:500;
+}
+.ci-dot{border-radius:50%;flex-shrink:0;}
 
 .big-n{font-family:'Cinzel',serif;font-size:clamp(3.5rem,15vw,6rem);
   color:var(--gold);text-align:center;line-height:1;
@@ -294,9 +303,9 @@ input[type=range]::-webkit-slider-runnable-track{
       oninput="sSlider(this,'mnV',10,100);clampMax()">
     <div class="rr"><span>10 bpm</span><span>100 bpm</span></div>
     <label class="mt8">Maximum &nbsp;<span class="rv" id="mxV">90</span> bpm</label>
-    <input type="range" id="mxS" min="30" max="160" value="90"
-      oninput="sSlider(this,'mxV',30,160);clampMin()">
-    <div class="rr"><span>30 bpm</span><span>160 bpm</span></div>
+    <input type="range" id="mxS" min="30" max="200" value="90"
+      oninput="sSlider(this,'mxV',30,200);clampMin()">
+    <div class="rr"><span>30 bpm</span><span>200 bpm</span></div>
   </div>
 
   <!-- Edges — hidden for asustain -->
@@ -336,7 +345,7 @@ input[type=range]::-webkit-slider-runnable-track{
   </div>
 
   <button class="btn btn-primary" onclick="startSession()">Begin Session</button>
-  <div style="margin-top:14px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.18em;color:var(--muted);opacity:.5;">v13</div>
+  <div style="margin-top:14px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.18em;color:var(--muted);opacity:.5;">v17</div>
 </div>
 
 <!-- ══════════ PLAY ══════════ -->
@@ -368,7 +377,7 @@ input[type=range]::-webkit-slider-runnable-track{
 
   <!-- ⚡ I'm close — adaptive sustain only -->
   <button class="btn btn-warn" id="closeBtn" style="display:none;" onclick="playerClose()">
-    ⚡ I'm very close — about to go over
+    ⚡ Stop — I'm going to edge
   </button>
   <button class="btn btn-gold" id="edgedBtn" onclick="playerEdged()">✦ I've Edged</button>
   <button class="btn btn-danger" onclick="wentOver()">⚠ I went over the edge</button>
@@ -408,15 +417,58 @@ input[type=range]::-webkit-slider-runnable-track{
 
 <!-- ══════════ CHECK-IN OVERLAY ══════════ -->
 <div class="cio" id="ciO">
-  <div class="ci-mode" id="ciMode"></div>
-  <div class="cit">How close are you?</div>
-  <div class="cis" id="ciSub"></div>
-  <div class="cibs">
-    <button class="cib ci-g" onclick="ciR('far')">🟢</button>
-    <button class="cib ci-y" onclick="ciR('close')">🟡</button>
-    <button class="cib ci-r" onclick="ciR('edge')">🔴</button>
+  <div class="ci-inner-wrap">
+    <div class="ci-mode" id="ciMode"></div>
+    <div class="cis" id="ciSub">Where are you right now?</div>
+    <div class="ci-cards">
+
+      <!-- Extremely close — solid deep red -->
+      <div class="ci-card" style="background:#7f1d1d;min-height:58px;" onclick="ciCardTap(92)">
+        <div class="ci-bar" style="width:5px;background:#ef4444;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#fecaca;">Extremely close</span>
+          <div class="ci-dot" style="width:22px;height:22px;background:#ef4444;"></div>
+        </div>
+      </div>
+
+      <!-- Very close — solid deep orange -->
+      <div class="ci-card" style="background:#7c2d12;min-height:52px;" onclick="ciCardTap(72)">
+        <div class="ci-bar" style="width:4px;background:#f97316;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#fed7aa;">Very close</span>
+          <div class="ci-dot" style="width:17px;height:17px;background:#f97316;"></div>
+        </div>
+      </div>
+
+      <!-- Building — solid deep amber -->
+      <div class="ci-card" style="background:#713f12;min-height:46px;" onclick="ciCardTap(50)">
+        <div class="ci-bar" style="width:3px;background:#eab308;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#fef08a;">Building</span>
+          <div class="ci-dot" style="width:13px;height:13px;background:#eab308;"></div>
+        </div>
+      </div>
+
+      <!-- Settling in — solid deep lime -->
+      <div class="ci-card" style="background:#1a2e05;min-height:42px;" onclick="ciCardTap(28)">
+        <div class="ci-bar" style="width:3px;background:#84cc16;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#d9f99d;">Settling in</span>
+          <div class="ci-dot" style="width:9px;height:9px;background:#84cc16;"></div>
+        </div>
+      </div>
+
+      <!-- Calm — solid deep green -->
+      <div class="ci-card" style="background:#052e16;min-height:38px;" onclick="ciCardTap(10)">
+        <div class="ci-bar" style="width:2px;background:#22c55e;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#bbf7d0;">Calm</span>
+          <div class="ci-dot" style="width:6px;height:6px;background:#22c55e;"></div>
+        </div>
+      </div>
+
+    </div>
   </div>
-  <div class="cilbl"><span>Far off</span><span>Getting close</span><span>Right there</span></div>
 </div>
 
 <div id="toast">Copied!</div>
@@ -438,8 +490,8 @@ const RANGES={
   slowburn: {easy:[22,65],  medium:[26,82],  hard:[30,100]},
   pulse:    {easy:[30,80],  medium:[38,115], hard:[45,145]},
   erratic:  {easy:[20,75],  medium:[25,110], hard:[30,150]},
-  abuild:   {easy:[28,80],  medium:[32,100], hard:[38,125]},
-  asustain: {easy:[28,75],  medium:[32,100], hard:[38,130]},
+  abuild:   {easy:[28,100], medium:[32,130], hard:[38,165]},
+  asustain: {easy:[28,95],  medium:[32,125], hard:[38,160]},
 };
 
 const PINFO={
@@ -472,6 +524,13 @@ const G={
   peakBpmSeen:0,
   // adaptive
   adFloor:0, adCeiling:0, ciTimer:null, lastCI:0, profile:null,
+  // arousal model
+  arousal:20,          // 0-100: internal estimate of player proximity to edge
+  arousalTimer:null,   // interval that updates arousal continuously
+  ciOpen:false,        // true while check-in overlay is showing
+  lastZapTime:0,       // timestamp of last ⚡ press
+  lastCITime:0,        // timestamp when last check-in was shown (for zap-after-CI detection)
+  ciHistory:[],        // last 3 check-in levels e.g. ['far','close','edge']
   // sustain
   sustainTimer:null, sustainRemaining:0, sustainTotal:0,
 };
@@ -515,7 +574,7 @@ function applyRanges(){
   const[mn,mx]=RANGES[k][d];
   const me=document.getElementById('mnS'),xe=document.getElementById('mxS');
   me.value=mn; sSlider(me,'mnV',10,100);
-  xe.value=mx; sSlider(xe,'mxV',30,160);
+  xe.value=mx; sSlider(xe,'mxV',30,200);
 }
 function sSlider(el,id,mn,mx){
   document.getElementById(id).textContent=el.value;
@@ -523,7 +582,7 @@ function sSlider(el,id,mn,mx){
 }
 function clampMax(){
   const mn=+document.getElementById('mnS').value,e=document.getElementById('mxS');
-  if(+e.value<mn+10){e.value=mn+10;sSlider(e,'mxV',30,160);}
+  if(+e.value<mn+10){e.value=mn+10;sSlider(e,'mxV',30,200);}
 }
 function clampMin(){
   const mx=+document.getElementById('mxS').value,e=document.getElementById('mnS');
@@ -1038,13 +1097,21 @@ function getBlocks(edgeNum, sustainTarget){
 // ════════════════════════════════════════════
 // ADAPTIVE PROFILE
 // ════════════════════════════════════════════
-const PK='tme_profile_v2';
+const PK='tme_profile_v3'; // bumped to avoid conflicts with old profile shape
 function loadProf(){
   try{
     const r=localStorage.getItem(PK);
     const parsed = r ? JSON.parse(r) : null;
     G.profile = (parsed && typeof parsed === 'object') ? parsed : {edgeBpm:null,sessions:0};
   }catch(e){G.profile={edgeBpm:null,sessions:0};}
+
+  // Initialise new profile fields if missing (backwards compatible)
+  if(!G.profile.yellowBpm) G.profile.yellowBpm = null;
+  if(!G.profile.redBpm) G.profile.redBpm = null;
+  if(!G.profile.edgeZoneWidth) G.profile.edgeZoneWidth = null;
+  if(!G.profile.zapBehavior) G.profile.zapBehavior = {count:0, avgBpm:0};
+  if(!G.profile.avgTimeToFirstEdge) G.profile.avgTimeToFirstEdge = null;
+
   // Initialise adaptive range from profile knowledge
   if(G.profile.edgeBpm){
     const spread=Math.max(20,(CFG.maxBpm-CFG.minBpm)*0.55);
@@ -1054,81 +1121,311 @@ function loadProf(){
     G.adFloor=CFG.minBpm;
     G.adCeiling=CFG.maxBpm;
   }
+
+  // If profile knows their yellow zone, seed the initial arousal and ceiling
+  // so the game doesn't have to rediscover from scratch every session.
+  if(G.profile.yellowBpm){
+    G.adCeiling = Math.min(CFG.maxBpm, Math.round(G.profile.yellowBpm * 0.90));
+    G.adFloor   = Math.max(CFG.minBpm, G.adCeiling - Math.round((CFG.maxBpm-CFG.minBpm)*0.45));
+    G.arousal   = 30; // start a little higher — the game already knows you
+  }
 }
 function saveProf(){
   if(!G.profile || typeof G.profile !== 'object') return;
   try{localStorage.setItem(PK,JSON.stringify(G.profile));}catch(e){}
 }
 
-// ── CHECK-INS ─────────────────────────────────
+// ════════════════════════════════════════════
+// AROUSAL MODEL
+// ════════════════════════════════════════════
+// G.arousal is a continuous 0-100 estimate of the player's proximity to orgasm.
+// 0  = completely cold
+// 20 = session just started, warming up
+// 50 = meaningfully aroused, mid-session
+// 70 = approaching the edge zone
+// 85 = close — sustain mode should be managing carefully here
+// 95 = very close — sustain should pre-emptively ease back
+// 100 = at the edge / orgasm threshold
+//
+// Updated every 5 seconds by arousalTick(). Also updated by explicit events
+// (check-in responses, ⚡ presses). Never shown to the player.
+
+const AROUSAL_TICK_MS = 5000;
+
+function startArousalEngine(){
+  stopArousalEngine();
+  const isAd = CFG.preset==='abuild' || CFG.preset==='asustain';
+  if(!isAd) return;
+  G.arousalTimer = setInterval(arousalTick, AROUSAL_TICK_MS);
+}
+function stopArousalEngine(){
+  if(G.arousalTimer){clearInterval(G.arousalTimer);G.arousalTimer=null;}
+}
+
+// Called every 5 seconds. Drifts arousal based on current BPM relative to
+// the player's known edge speed and the general passage of time.
+function arousalTick(){
+  if(G.timerDone) return;
+  if(!G.profile) return;
+
+  const edgeBpm = G.profile.edgeBpm;
+  const bpm = G.currentBpm;
+
+  // Base rate: arousal rises slowly just from running the session (0.4 per tick = ~5/min)
+  let delta = 0.4;
+
+  if(edgeBpm && edgeBpm > 0){
+    // BPM proximity: how close is current BPM to known edge speed?
+    // At 0% of edge speed → no extra contribution
+    // At 80% of edge speed → +0.8/tick
+    // At 95% of edge speed → +2.2/tick  (getting close)
+    // At 100%+ of edge speed → +3.5/tick (right there)
+    const proximity = bpm / edgeBpm; // 0 to 1+
+    if(proximity > 0.5){
+      delta += (proximity - 0.5) * 6.2; // scales from 0 to +3.1 at 100% proximity
+    }
+    // Above edge speed: escalate faster
+    if(proximity > 1.0){
+      delta += (proximity - 1.0) * 8.0;
+    }
+  }else{
+    // No edge estimate yet — use position in adaptive range as proxy
+    const rangePct = G.adCeiling > G.adFloor
+      ? (bpm - G.adFloor) / (G.adCeiling - G.adFloor)
+      : 0.5;
+    delta += Math.max(0, rangePct - 0.4) * 3.5; // rises faster in upper 60% of range
+  }
+
+  // Natural recovery during low phases — when bpm is in the lower third of the
+  // current range. Uses a RELATIVE check so recovery still fires even when the
+  // whole range has shifted upward after multiple check-ins.
+  const lowerThird = G.adFloor + (G.adCeiling - G.adFloor) * 0.32;
+  if(bpm < lowerThird){
+    delta -= 1.2; // recovery — arousal slowly drops in genuine low phases
+  }
+
+  // Time since last ⚡: extended flat-low reduces arousal more aggressively
+  if(G.lastZapTime > 0){
+    const secsSinceZap = (Date.now() - G.lastZapTime) / 1000;
+    if(secsSinceZap < 120){ // first 2 mins after ⚡ — still recovering
+      delta -= 2.5; // strong downward pull during recovery period
+    }
+  }
+
+  G.arousal = Math.max(0, Math.min(100, G.arousal + delta));
+
+  // Sustain mode: autonomous adjustment based on arousal level
+  if(CFG.preset==='asustain'){
+    sustainArousalAdjust();
+  }
+}
+
+// Sustain-mode autonomous adjustment — acts without requiring player input.
+// Tracks arousal at all times but only triggers metronome changes when the
+// check-in overlay is NOT showing (G.ciOpen === false). This prevents the
+// pattern from shifting mid-check-in while the player is trying to answer.
+let _lastArousalAdjust = 0;
+function sustainArousalAdjust(){
+  const now = Date.now();
+  if(now - _lastArousalAdjust < 15000) return;
+
+  if(G.arousal > 94){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, snap(G.adCeiling * 0.90));
+    G.arousal = Math.min(G.arousal, 78);
+    // Only restart metronome if check-in is NOT open
+    if(!G.ciOpen){
+      startMetroSmooth(getBlocks(G.currentEdge, Math.min(G.adCeiling - 5, G.currentBpm)));
+    }
+
+  }else if(G.arousal > 88){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, snap(G.adCeiling * 0.94));
+    G.arousal = Math.min(G.arousal, 82);
+    // Ceiling adjustment only — no metro restart at this threshold
+
+  }else if(G.arousal > 82){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, G.adCeiling - 2);
+  }
+}
+
+// ── REPORT VELOCITY ────────────────────────────
+// Tracks the direction of travel across the last 3 check-ins.
+// Accelerating (green→yellow→red) is treated differently to stable (yellow×3).
+// Returns a signed velocity: positive = heading toward edge, negative = moving away
+function reportVelocity(){
+  const h = G.ciHistory;
+  if(h.length < 2) return 0;
+  // Assign scores: far=0, close=1, edge=2
+  const score = l => l==='far'?0 : l==='close'?1 : 2;
+  const scores = h.slice(-3).map(score);
+  if(scores.length === 1) return 0;
+  // Average change per step
+  let totalDelta = 0;
+  for(let i=1; i<scores.length; i++) totalDelta += scores[i] - scores[i-1];
+  return totalDelta / (scores.length - 1); // -1 to +1
+}
+
+// ── CHECK-IN: when player answers ─────────────
+// Records the answer in ciHistory, updates the arousal model,
+// and checks for the "zap-after-CI" pattern (CI said yellow but
+// ⚡ fired within 90s — means that yellow was really a near-red).
+function recordCIResponse(level, rawVal){
+  rawVal = (rawVal == null) ? (level==='far'?15 : level==='close'?50 : 82) : rawVal;
+
+  G.ciHistory.push(level);
+  if(G.ciHistory.length > 4) G.ciHistory.shift();
+
+  // Underreport detection: previous CI was close but ⚡ fired within 90s
+  if(G.lastZapTime > G.lastCITime && G.ciHistory.length >= 2){
+    const prevLevel = G.ciHistory[G.ciHistory.length - 2];
+    const secsBetween = (G.lastZapTime - G.lastCITime) / 1000;
+    if(prevLevel === 'close' && secsBetween < 90 && G.profile){
+      const zapBpm = G.profile._zapBpm || G.currentBpm;
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(zapBpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm * 0.7 + zapBpm * 0.3);
+      if(!G.profile.underreportCount) G.profile.underreportCount = 0;
+      G.profile.underreportCount++;
+    }
+  }
+
+  // Update arousal using raw value (0-100) for full precision.
+  // Thresholds match ciCardTap: >= 80 = edge, >= 38 = close, < 38 = far.
+  const vel = reportVelocity();
+  const arousalTarget = 20 + rawVal * 0.75 + vel * 8;
+
+  if(rawVal >= 80){
+    // Edge zone (Extremely close) — set to at least 84
+    G.arousal = Math.max(G.arousal, Math.max(84, arousalTarget));
+    G.arousal = Math.min(100, G.arousal);
+  }else if(rawVal >= 38){
+    // Close zone (Very close or Building) — blend toward target
+    G.arousal = G.arousal * 0.35 + Math.max(45, arousalTarget) * 0.65;
+    G.arousal = Math.max(40, Math.min(82, G.arousal));
+  }else{
+    // Far zone (Settling in or Calm) — pull arousal toward calm
+    G.arousal = G.arousal * 0.45 + Math.min(45, arousalTarget) * 0.55;
+    G.arousal = Math.max(10, Math.min(55, G.arousal));
+  }
+
+  // Update profile: record BPM at which each zone was reported
+  if(G.profile){
+    const bpm = G.currentBpm;
+    if(level==='close'){
+      if(!G.profile.yellowBpm) G.profile.yellowBpm = bpm;
+      else G.profile.yellowBpm = snap(G.profile.yellowBpm * 0.7 + bpm * 0.3);
+    }else if(level==='edge'){
+      if(!G.profile.redBpm) G.profile.redBpm = bpm;
+      else G.profile.redBpm = snap(G.profile.redBpm * 0.7 + bpm * 0.3);
+      if(G.profile.yellowBpm && G.profile.redBpm){
+        G.profile.edgeZoneWidth = Math.abs(G.profile.redBpm - G.profile.yellowBpm);
+      }
+    }
+    saveProf();
+  }
+}
+
+// Called when ⚡ is pressed — records the event for the model
+function recordZap(){
+  G.lastZapTime = Date.now();
+  G.arousal = 88; // ⚡ signals they were very close — set high before drop
+  if(G.profile){
+    G.profile._zapBpm = G.currentBpm; // store BPM at zap for underreport detection
+    if(!G.profile.zapBehavior) G.profile.zapBehavior = {count:0, avgBpm:0};
+    G.profile.zapBehavior.count++;
+    G.profile.zapBehavior.avgBpm = snap(
+      (G.profile.zapBehavior.avgBpm * (G.profile.zapBehavior.count-1) + G.currentBpm)
+      / G.profile.zapBehavior.count
+    );
+    saveProf();
+  }
+}
+
 // ── CHECK-IN CADENCE (per pattern) ────────────
-// Each pattern has its own natural rhythm of check-ins. Cadences are
-// kept relatively tight so they feel regular, with just enough variation
-// to avoid being predictable. Slow Burn earns more patience between
-// check-ins; Pulse fires faster to match its sharper character.
+// Cadences tightened for adaptive mode dynamism and regularity.
+// When arousal is high (≥75) the next check-in fires sooner — the game
+// checks in more often when it suspects the player is getting close.
 function checkinCadence(){
   const p = CFG.sustainPat;
-  // Returns [firstMin, firstMax, subsequentMin, subsequentMax] in milliseconds
-  if(p==='slowburn') return [80000, 110000, 70000, 100000];   // ~75-105s typical
-  if(p==='pulse')    return [40000, 60000,  35000, 55000];    // ~35-55s typical
-  if(p==='erratic')  return [50000, 75000,  45000, 70000];    // ~50-70s typical
-  return [55000, 80000, 50000, 75000];                         // waves: 50-75s
+  if(p==='slowburn') return [80000, 110000, 70000, 100000];
+  if(p==='pulse')    return [40000,  60000, 35000,  55000];
+  if(p==='erratic')  return [50000,  75000, 45000,  70000];
+  return [55000, 80000, 50000, 75000]; // waves
 }
 
 // ── PATTERN-AWARE RESPONSE SIZE (build mode) ──
-// How much to push the ceiling when the player reports yellow/green.
-// Slow Burn responds patiently — small jumps preserve its long-staircase
-// identity. Pulse responds aggressively — its bursts naturally jump.
-// Returns minimum bpm increase from current speed.
 function patternResponseSize(level){
   const p = CFG.sustainPat;
-  // [yellow_jump, green_jump]
   let sizes;
   if(p==='slowburn')    sizes = [8,  14];
   else if(p==='pulse')   sizes = [16, 26];
   else if(p==='erratic') sizes = [12, 20];
-  else                   sizes = [12, 20]; // waves
+  else                   sizes = [12, 20];
   return level==='yellow' ? sizes[0] : sizes[1];
 }
 
-// ── CHECK-INS ─────────────────────────────────
-// Cadence determined by chosen sub-pattern. The mandatory check-in is the
-// player's primary input (along with ⚡ in sustain). Without intensity,
-// each pattern owns its own pacing.
-function schCI(){
-  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-  const [fMin, fMax, sMin, sMax] = checkinCadence();
-  const delay = G.lastCI===0
-    ? snap(rnd(fMin, fMax))
-    : snap(rnd(sMin, sMax));
-  G.ciTimer=setTimeout(showCI,delay);
-}
-function showCI(){
-  const isSus=CFG.preset==='asustain';
-  document.getElementById('ciMode').textContent=isSus?'ADAPTIVE SUSTAIN':'ADAPTIVE BUILD';
-  document.getElementById('ciSub').textContent=isSus
-    ?'This keeps you just under the edge. How close are you?'
-    :'Be honest — this helps calibrate your session.';
-  document.getElementById('ciO').classList.add('show');
-  // Audio cue — a distinct two-tone chime so eyes-closed players hear it
-  playCheckinCue();
-}
-function ciR(level){
+// ── CHECK-IN SCHEDULING ────────────────────────
+// ── TAP-BAR CHECK-IN ──────────────────────────
+// The bar is 340px tall. Position 0 = bottom (calm), 100 = top (edge).
+// Player taps anywhere; a thumb moves to that position; Confirm button appears.
+// Raw position (0-100) feeds into the arousal model with full precision.
+// Mapped to 'far'/'close'/'edge' for applyAdaptive backwards compatibility:
+//   0-33  → 'far'   (calm / not aroused)
+//   34-66 → 'close' (noticeably aroused)
+//   67-100 → 'edge' (close to edge)
+
+// ── 5-CARD CHECK-IN ────────────────────────────
+// One tap = immediate response. No confirm needed — cards are discrete.
+//
+// Card → rawVal → level:
+//   Extremely close  92 → 'edge'   (>= 80)
+//   Very close       72 → 'close'  (38-79)
+//   Building         50 → 'close'
+//   Settling in      28 → 'far'    (< 38)
+//   Calm             10 → 'far'
+
+function ciCardTap(rawVal){
+  const level = rawVal >= 80 ? 'edge' : rawVal >= 38 ? 'close' : 'far';
+  G.ciOpen = false;
   document.getElementById('ciO').classList.remove('show');
-  G.lastCI=Date.now();
-  applyAdaptive(level,false);
-  // Stop any pattern evolution loop — applyAdaptive will start a new pattern,
-  // which will start its own evolution loop.
+  G.lastCI = Date.now();
+  recordCIResponse(level, rawVal);
+  applyAdaptive(level, false);
   schCI();
 }
 
-// ── "I'M CLOSE" immediate button — SUSTAIN MODE ONLY ──────────────
+function showCI(){
+  const isSus = CFG.preset==='asustain';
+  G.lastCITime = Date.now();
+  G.ciOpen = true; // check-in open — suspend autonomous pattern changes
+  document.getElementById('ciMode').textContent = isSus ? 'ADAPTIVE SUSTAIN' : 'ADAPTIVE BUILD';
+  document.getElementById('ciSub').textContent  = 'Where are you right now?';
+  document.getElementById('ciO').classList.add('show');
+  playCheckinCue();
+}
+
+// ── CHECK-IN SCHEDULING ────────────────────────
+function schCI(){
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  const [fMin, fMax, sMin, sMax] = checkinCadence();
+  let delay = G.lastCI===0
+    ? snap(rnd(fMin, fMax))
+    : snap(rnd(sMin, sMax));
+  if(G.arousal >= 80) delay = Math.round(delay * 0.75);
+  else if(G.arousal >= 65) delay = Math.round(delay * 0.88);
+  G.ciTimer = setTimeout(showCI, delay);
+}
+
+
+// ── "STOP — I'M GOING TO EDGE" — SUSTAIN MODE ONLY ──────────────
 function playerClose(){
-  if(CFG.preset!=='asustain') return; // guard: button should never appear in build mode
+  if(CFG.preset!=='asustain') return;
   resAC();
+  G.ciOpen = false;
+  recordZap();
   document.getElementById('ciO').classList.remove('show');
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-  // ⚡ overrides any pending tap-triggered change
   applyAdaptive('edge',true);
   schCI();
 }
@@ -1151,17 +1448,18 @@ function applyAdaptive(level,fromClose){
 
   if(isSus){
     // ── SUSTAIN ──────────────────────────────────
-    // Goal: keep the player oscillating between yellow and red.
+    // Goal: keep the player perpetually just UNDER the edge — aroused, needy,
+    // close but never actually reaching orgasm. The arousal model helps the
+    // game be conservative when the estimate is high and more generous when low.
     if(!G.profile.sustainReds) G.profile.sustainReds=0;
     if(!G.profile.yellowStreak) G.profile.yellowStreak=0;
     if(!G.profile.zapCount) G.profile.zapCount=0;
 
-    let sustainTarget; // the BPM to oscillate around after this response
+    const vel = reportVelocity(); // positive = heading toward edge
+    let sustainTarget;
 
     if(fromClose){
-      // ⚡ "I'm close" — emergency drop. ALWAYS drops to minimum (full mercy
-      // is non-negotiable). But the game tracks how often this happens —
-      // the more they press it, the less runway they get on recovery.
+      // ⚡ emergency drop — always full mercy, flat minimum
       G.profile.sustainReds=0;
       G.profile.yellowStreak=0;
       G.profile.lastWasEmergency=true;
@@ -1173,159 +1471,154 @@ function applyAdaptive(level,fromClose){
       G.adFloor   = CFG.minBpm;
 
     }else if(level==='edge'){
-      // Check-in red — small deliberate step back.
+      // Red check-in — they're too close. Step back.
+      // How far back depends on arousal level and whether they're accelerating.
       G.profile.lastWasEmergency=false;
       G.profile.yellowStreak=0;
       G.profile.sustainReds++;
       if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
       else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
-      const dropFactor = G.profile.sustainReds>=3 ? 0.88 : 0.93;
+      // Bigger drop if arousal is very high or if they've had multiple reds
+      let dropFactor = 0.93;
+      if(G.arousal > 88) dropFactor = 0.85;         // genuinely close — bigger drop
+      else if(G.profile.sustainReds >= 3) dropFactor = 0.88; // persistent reds
+      else if(vel >= 1) dropFactor = 0.89;           // accelerating toward edge
       sustainTarget = Math.max(CFG.minBpm, snap(bpm * dropFactor));
       G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
       G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
 
     }else if(level==='close'){
-      // Yellow — perfect zone. Track the streak (band narrows on repeats).
+      // Yellow — perfect zone. Stay here but nudge up gently.
+      // If arousal estimate says they're already close (>75), be more
+      // conservative — the tiny nudge up stays tiny. If arousal is lower,
+      // we can afford a slightly bigger nudge.
       G.profile.lastWasEmergency=false;
       G.profile.sustainReds=0;
       G.profile.yellowStreak++;
-      const wobble = snap(Math.random()*5 - 1); // -1 to +4
-      sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 3 + wobble));
-      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
-      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
+      // Arousal-modulated nudge: high arousal → smaller push; low arousal → slightly larger
+      const maxNudge = G.arousal > 75 ? 3 : G.arousal > 60 ? 5 : 7;
+      const wobble = snap(Math.random() * maxNudge);
+      sustainTarget = Math.min(CFG.maxBpm, snap(bpm + wobble));
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
 
     }else{
-      // Green — too far off.
+      // Green — too far off. Push up.
+      // Use edge zone width from profile to calibrate how big to push.
+      // If we know their yellow-to-red gap is only 6 bpm, a 16-bpm push
+      // would overshoot. If their zone is 20 bpm wide, we have more room.
       G.profile.sustainReds=0;
       G.profile.yellowStreak=0;
-      // After ⚡: jump back faster the more times they've pressed it this session.
-      // 1st ⚡ recovery: 88% of edge speed (gentle)
-      // 2nd ⚡ recovery: 95% of edge speed (closer)
-      // 3rd+ ⚡ recovery: 100% — straight back to edge speed
-      if(G.profile.lastWasEmergency && G.profile.edgeBpm){
+      G.profile.lastWasEmergency=false;
+
+      let pushAmount;
+      if(G.profile.edgeZoneWidth && G.profile.yellowBpm){
+        // We know their zone — push to 85% of the way to their yellow BPM
+        const target85 = snap(G.profile.yellowBpm * 0.85);
+        pushAmount = Math.max(bpm + 10, target85);
+      }else if(G.profile.edgeBpm){
+        // We know edge speed — push to ~80% of it
         const recoveryFactor = G.profile.zapCount>=3 ? 1.00
                              : G.profile.zapCount>=2 ? 0.95
                              : 0.88;
-        sustainTarget = Math.min(CFG.maxBpm, snap(G.profile.edgeBpm * recoveryFactor));
-      }else if(G.profile.lastWasEmergency){
-        // No edge estimate — jump higher each subsequent ⚡
-        const rangeRatio = G.profile.zapCount>=3 ? 0.80
-                         : G.profile.zapCount>=2 ? 0.72
-                         : 0.65;
-        sustainTarget = Math.min(CFG.maxBpm, snap(CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*rangeRatio));
+        pushAmount = G.profile.lastWasEmergency
+          ? Math.min(CFG.maxBpm, snap(G.profile.edgeBpm * recoveryFactor))
+          : Math.min(CFG.maxBpm, snap(bpm + 16));
       }else{
-        sustainTarget = Math.min(CFG.maxBpm, snap(bpm + 16));
+        pushAmount = Math.min(CFG.maxBpm, snap(bpm + 16));
       }
-      G.profile.lastWasEmergency=false;
+      sustainTarget = Math.min(CFG.maxBpm, pushAmount);
       G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
       G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
     }
 
-    // Ensure floor never meets or exceeds ceiling
     G.adFloor = Math.min(G.adFloor, G.adCeiling - 10);
     G.adFloor = Math.max(CFG.minBpm, G.adFloor);
 
-    // ⚡ press: bypass sub-pattern entirely and play a flat-low pattern.
-    // The player needs full mercy — no oscillation, no bursts. Just minBpm
-    // held until the next check-in or until they tap themselves back up.
     if(fromClose){
       startMetroSmooth(pFlatLow(CFG.minBpm));
     }else{
-      // Check-in response: use the chosen sub-pattern's sustain loop at the
-      // adjusted range. Pattern identity is preserved.
       startMetroSmooth(getBlocks(G.currentEdge, sustainTarget));
     }
 
   }else{
     // ── BUILD ─────────────────────────────────────
-    // Goal: actively guide the player toward their edge.
-    // After a check-in, re-build the FULL chosen sub-pattern (build + sustain)
-    // climbing from the player's current speed to a new ceiling. This preserves
-    // the pattern's identity: Slow Burn keeps doing its patient staircase, just
-    // toward a higher destination. Pulse keeps its escalating bursts.
-    // The check-in adjusts the DESTINATION; the pattern takes them there.
-    let buildCeiling; // the new top of the range
+    // Goal: guide the player toward their edge — not instantly, but deliberately.
+    // The arousal model helps size responses: when the player is already quite
+    // aroused (estimate > 65), green responses can be larger because the game
+    // knows they're genuinely climbing. When arousal is low, smaller jumps.
+    // Build mode almost never backs off autonomously — only on red/⚡.
+    let buildCeiling;
+    const vel = reportVelocity();
 
     if(level==='edge'){
-      // Right at the edge — hold this speed so they tip over. Use a flat hold,
-      // not a full pattern rebuild — they don't need to climb anymore.
-      const target = snap(bpm);
-      G.adCeiling = Math.min(CFG.maxBpm, target + 8);
-      G.adFloor   = Math.max(CFG.minBpm, target - 12);
+      // Player is extremely close — hold them at their edge speed so they tip over.
+      // IMPORTANT: use edgeBpm (or upper ceiling estimate) as hold target, NOT
+      // the current metronome bpm — which could be the low phase of a pattern.
+      // Holding at 38 bpm recovery when they're "extremely close" would feel wrong.
+      const holdBpm = G.profile.edgeBpm
+        ? snap(G.profile.edgeBpm * 0.96)
+        : snap(Math.max(G.currentBpm, G.adCeiling * 0.88));
+      G.adCeiling = Math.min(CFG.maxBpm, holdBpm + 8);
+      G.adFloor   = Math.max(CFG.minBpm, holdBpm - 12);
       G.adFloor   = Math.min(G.adFloor, G.adCeiling - 10);
-      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(bpm);
-      else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6 + bpm*0.4);
-      // Hold near current bpm using a pSustainZone-style tight oscillation.
-      // (The pattern's identity is less important here — they're at the edge.)
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(holdBpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6 + holdBpm*0.4);
       saveProf();
+      // Tight oscillation around the hold speed — not a full pattern
       startMetroSmooth([
-        {bpm: snap(bpm),     secs: 30, phase:''},
-        {bpm: snap(bpm-3),   secs: 8,  phase:''},
-        {bpm: snap(bpm),     secs: 30, phase:''},
-        {bpm: snap(bpm+2),   secs: 25, phase:''},
+        {bpm: holdBpm,           secs: 28, phase:''},
+        {bpm: snap(holdBpm-3),   secs: 8,  phase:''},
+        {bpm: holdBpm,           secs: 28, phase:''},
+        {bpm: snap(holdBpm+2),   secs: 22, phase:''},
       ]);
       return;
 
     }else if(level==='close'){
-      // Yellow — getting close. Push the ceiling meaningfully higher so the
-      // pattern's climb tops out higher than it would have. Floor follows the
-      // player's current speed so the climb continues forward, not backward.
-      // Magnitude varies by pattern: Slow Burn responds patiently; Pulse hits hard.
-      const yJump = patternResponseSize('yellow');
+      // Yellow — calibrate jump size by pattern AND arousal level.
+      // Higher arousal means larger response — the game knows they're genuinely
+      // climbing and can afford to push the ceiling more aggressively.
+      const baseJump = patternResponseSize('yellow');
+      const arousalBonus = G.arousal > 65 ? Math.round((G.arousal - 65) * 0.3) : 0;
+      const effectiveJump = baseJump + arousalBonus;
       if(G.profile.edgeBpm){
-        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + yJump, snap(G.profile.edgeBpm * 0.95)));
+        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + effectiveJump, snap(G.profile.edgeBpm * 0.95)));
       }else{
-        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + yJump + 2));
+        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + effectiveJump + 2));
       }
 
     }else{
-      // Green — far off. Push the ceiling significantly higher.
-      const gJump = patternResponseSize('green');
+      // Green — push hard. If arousal is already elevated, jump even harder.
+      const baseJump = patternResponseSize('green');
+      const arousalBonus = G.arousal > 55 ? Math.round((G.arousal - 55) * 0.35) : 0;
+      const velBonus = vel > 0 ? Math.round(vel * 6) : 0; // accelerating → bigger jump
+      const effectiveJump = baseJump + arousalBonus + velBonus;
       if(G.profile.edgeBpm){
-        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + gJump, snap(G.profile.edgeBpm * 0.90)));
+        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + effectiveJump, snap(G.profile.edgeBpm * 0.90)));
       }else{
-        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + gJump + 2));
+        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + effectiveJump + 2));
       }
     }
 
-    // Decide between two response modes based on jump size:
-    //
-    // SMALL JUMP (buildCeiling close to current bpm) — hold near current with
-    // small variations. Restarting a full build for a tiny jump would feel
-    // weird (player drops back to climb just a few bpm). Just keep them near
-    // their current speed with the pattern's sustain-style behavior.
-    //
-    // LARGE JUMP (buildCeiling well above current bpm) — restart the full
-    // sub-pattern climbing FROM current bpm to the new ceiling. Pattern
-    // identity is preserved during the climb.
     const jumpSize = buildCeiling - snap(bpm);
-
     G.adCeiling = Math.min(CFG.maxBpm, buildCeiling);
     G.adFloor = Math.max(CFG.minBpm, snap(bpm));
-
-    // Ensure ceiling stays meaningfully above floor for the build to have room
-    if(G.adCeiling - G.adFloor < 8){
-      G.adCeiling = Math.min(CFG.maxBpm, G.adFloor + 8);
-    }
+    if(G.adCeiling - G.adFloor < 8) G.adCeiling = Math.min(CFG.maxBpm, G.adFloor + 8);
 
     saveProf();
 
     if(jumpSize < 14){
-      // Small jump: hold near current bpm with light wobble. Doesn't restart
-      // build — preserves the "small response" feel.
+      // Small jump: hold near current with light wobble
       const target = snap(bpm + jumpSize * 0.5);
       startMetroSmooth([
-        {bpm: target,                              secs: 30, phase:''},
-        {bpm: snap(target - 3),                    secs: 12, phase:''},
-        {bpm: Math.min(CFG.maxBpm, target + 2),    secs: 28, phase:''},
-        {bpm: snap(target - 2),                    secs: 10, phase:''},
-        {bpm: Math.min(CFG.maxBpm, snap(buildCeiling)), secs: 35, phase:''},
-        {bpm: snap(buildCeiling - 4),              secs: 14, phase:''},
+        {bpm: target,                              secs: 28, phase:''},
+        {bpm: snap(target - 3),                    secs: 10, phase:''},
+        {bpm: Math.min(CFG.maxBpm, target + 2),    secs: 26, phase:''},
+        {bpm: snap(target - 2),                    secs: 8,  phase:''},
+        {bpm: Math.min(CFG.maxBpm, snap(buildCeiling)), secs: 32, phase:''},
+        {bpm: snap(buildCeiling - 4),              secs: 12, phase:''},
       ]);
     }else{
-      // Large jump: re-run the full sub-pattern climbing from current bpm.
-      // Preserves pattern identity (Slow Burn keeps its staircase, Pulse its
-      // bursts) over the climb to the new ceiling.
       startMetroSmooth(buildBlocks(CFG.sustainPat, G.currentEdge, G.adFloor, G.adCeiling));
     }
     return;
@@ -1348,7 +1641,7 @@ function startSustainTimer(){
       clearInterval(G.sustainTimer);G.sustainTimer=null;
       stopMetro();
       if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-      document.getElementById('ciO').classList.remove('show');
+      G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
       showSummary();
     }
   },1000);
@@ -1374,6 +1667,13 @@ function startSession(){
   G.adFloor=CFG.minBpm;G.adCeiling=CFG.maxBpm;
   G.profile=null;
   G.peakBpmSeen=0; // track highest BPM reached during session (needed for sustain summary)
+  // Arousal model — fresh each session
+  G.arousal = 20;
+  G.lastZapTime = 0;
+  G.lastCITime = 0;
+  G.ciHistory = [];
+  G.ciOpen = false;
+  _lastArousalAdjust = 0; // reset autonomous adjustment throttle
 
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   const isSus=CFG.preset==='asustain';
@@ -1395,6 +1695,8 @@ function startSession(){
   showScreen('scrPlay');
   beginEdge();
   if(isSus)startSustainTimer();
+  // Arousal engine runs for both adaptive modes
+  if(isAd) startArousalEngine();
 }
 
 function buildPips(){
@@ -1431,10 +1733,9 @@ function beginEdge(){
   startMetro(getBlocks(G.currentEdge));
   const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
   if(isAd){
-    // Reset lastCI so the first check-in of each new edge always waits 90s,
-    // not 75s from wherever the previous edge left off.
     G.lastCI=0;
     schCI();
+    startArousalEngine(); // restart arousal tracking for this edge
   }
 }
 
@@ -1442,12 +1743,23 @@ function recordEdge(over){
   const dur=Math.round((Date.now()-G.edgeStarts[G.currentEdge-1])/1000);
   G.edges.push({bpm:Math.round(G.currentBpm),over,duration:dur});
   setPip(G.currentEdge-1,over?'over':'done');
+
+  // Track time-to-first-edge in build mode (helps game learn session pacing)
+  if(!over && G.currentEdge===1 && CFG.preset==='abuild' && G.profile){
+    const sessionSecs = Math.round((Date.now() - G.sessionStart) / 1000);
+    if(!G.profile.avgTimeToFirstEdge) G.profile.avgTimeToFirstEdge = sessionSecs;
+    else G.profile.avgTimeToFirstEdge = Math.round(
+      G.profile.avgTimeToFirstEdge * 0.7 + sessionSecs * 0.3
+    );
+    saveProf();
+  }
 }
 
 function afterEdge(){
   stopMetro();
+  stopArousalEngine(); // pause during break — restarts when beginEdge fires
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
-  document.getElementById('ciO').classList.remove('show');
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
 
   // Check if target reached
   if(!CFG.openSession&&G.currentEdge>=CFG.targetEdges){
@@ -1473,10 +1785,11 @@ function wentOver(){
   recordEdge(true);
   // Going over ends the session immediately
   stopMetro();
+  stopArousalEngine();
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
-  document.getElementById('ciO').classList.remove('show');
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
   showSummary();
 }
 
@@ -1520,10 +1833,11 @@ function startNextEdge(){
 
 function endSession(){
   stopMetro();
+  stopArousalEngine();
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
-  document.getElementById('ciO').classList.remove('show');
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
   showSummary();
 }
 
@@ -1667,10 +1981,11 @@ function showScreen(id){
 }
 function resetAll(){
   stopMetro();
+  stopArousalEngine();
   if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
   if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
   if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
-  document.getElementById('ciO').classList.remove('show');
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
   showScreen('scrWelcome');
 }
 
