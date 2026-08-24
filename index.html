@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The Metronome Edger</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+:root{
+  --bg:#0a0d14;--surf:#111827;--surf2:#1a2235;--border:#2a3a55;
+  --accent:#38bdf8;--accent2:#818cf8;--gold:#fbbf24;--red:#f87171;
+  --green:#34d399;--text:#e2eaf8;--muted:#6b82a8;--glow:rgba(56,189,248,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Crimson Text',Georgia,serif;overflow-x:hidden;}
+body{background-image:
+  radial-gradient(ellipse 70% 40% at 50% 0%,rgba(56,189,248,.08) 0%,transparent 70%),
+  radial-gradient(ellipse 50% 30% at 90% 90%,rgba(129,140,248,.06) 0%,transparent 60%);
+  min-height:100vh;}
+
+.screen{display:none;min-height:100vh;padding:18px 15px 60px;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+
+.page-title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.4rem,5vw,2.5rem);
+  letter-spacing:.12em;text-align:center;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 60%,#c7d2fe 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 18px var(--glow));margin-bottom:4px;}
+.page-sub{font-style:italic;color:var(--muted);font-size:1rem;
+  letter-spacing:.04em;margin-bottom:20px;text-align:center;}
+
+.card{background:var(--surf);border:1px solid var(--border);border-radius:14px;
+  padding:16px 15px;width:100%;max-width:480px;margin-bottom:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.03);}
+.card-title{font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.card-desc{font-size:.96rem;color:var(--muted);font-style:italic;line-height:1.5;margin-bottom:10px;}
+
+label{display:block;font-size:1.05rem;color:var(--text);margin-bottom:4px;line-height:1.4;}
+label small{color:var(--muted);font-size:.85rem;}
+.rv{font-size:1.05rem;color:var(--gold);font-weight:600;}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--surf2);
+  border-radius:3px;outline:none;margin:14px 0 8px;border:1px solid var(--border);
+  display:block;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  border-radius:50%;background:var(--accent);cursor:pointer;
+  box-shadow:0 0 10px var(--glow);border:2px solid var(--bg);}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:2px solid var(--bg);
+  border-radius:50%;background:var(--accent);cursor:pointer;
+  box-shadow:0 0 10px var(--glow);}
+input[type=range]::-webkit-slider-runnable-track{
+  background:linear-gradient(to right,var(--accent) var(--pct,0%),var(--surf2) var(--pct,0%));
+  height:6px;border-radius:3px;}
+.rr{display:flex;justify-content:space-between;margin-top:2px;margin-bottom:6px;}
+.rr span{font-size:.83rem;color:var(--muted);}
+
+.trow{display:flex;align-items:center;gap:11px;}
+.tog{width:50px;height:26px;background:var(--surf2);border:2px solid var(--border);
+  border-radius:13px;cursor:pointer;position:relative;
+  transition:background .25s,border-color .25s;flex-shrink:0;}
+.tog::after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;
+  background:var(--muted);border-radius:50%;transition:transform .25s,background .25s;}
+.tog.on{background:rgba(56,189,248,.15);border-color:var(--accent);}
+.tog.on::after{transform:translateX(24px);background:var(--accent);}
+.tlbl{font-size:1.05rem;color:var(--text);}
+.nrow{display:flex;align-items:center;gap:11px;margin-top:7px;}
+.nb{width:40px;height:40px;border:2px solid var(--border);border-radius:8px;
+  background:var(--surf2);color:var(--accent);font-size:1.5rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.nb:active{background:rgba(56,189,248,.15);}
+.nd{font-family:'Cinzel',serif;font-size:1.5rem;color:var(--gold);min-width:44px;text-align:center;}
+.xcol{overflow:hidden;transition:max-height .35s ease,opacity .3s ease;}
+.xcol.closed{max-height:0;opacity:0;pointer-events:none;}
+.xcol.open{max-height:900px;opacity:1;}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px;}
+.pb{padding:12px 8px;border:2px solid var(--border);border-radius:12px;
+  background:var(--surf2);cursor:pointer;text-align:center;transition:all .2s;
+  display:flex;flex-direction:column;gap:3px;}
+.pb .pn{font-family:'Cinzel',serif;font-size:.76rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);}
+.pb .pd{font-size:.84rem;font-style:italic;color:var(--muted);line-height:1.3;}
+.pb.sel{border-color:var(--accent);background:rgba(56,189,248,.08);}
+.pb.sel .pn{color:var(--accent);}.pb.sel .pd{color:var(--accent2);}
+
+.drow{display:flex;gap:8px;margin-top:4px;}
+.db{flex:1;padding:9px 4px;border:2px solid var(--border);border-radius:10px;
+  background:var(--surf2);font-family:'Cinzel',serif;font-size:.74rem;
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  color:var(--muted);text-align:center;transition:all .2s;}
+.db.sel{border-color:var(--gold);color:var(--gold);background:rgba(251,191,36,.08);}
+
+.sprow{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
+.spb{flex:1;min-width:70px;padding:8px 5px;border:2px solid var(--border);border-radius:10px;
+  background:var(--surf2);font-family:'Cinzel',serif;font-size:.7rem;
+  letter-spacing:.07em;text-transform:uppercase;cursor:pointer;
+  color:var(--muted);text-align:center;transition:all .2s;}
+.spb.sel{border-color:var(--accent2);color:var(--accent2);background:rgba(129,140,248,.08);}
+
+.btn{width:100%;max-width:480px;padding:15px;border:none;border-radius:12px;
+  font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.1em;cursor:pointer;
+  transition:all .18s;margin-bottom:9px;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 20px var(--glow);}
+.btn-secondary{background:var(--surf2);border:2px solid var(--border);color:var(--text);}
+.btn-ghost{background:transparent;border:2px solid var(--border);color:var(--muted);
+  font-family:'Crimson Text',serif;letter-spacing:.04em;}
+.btn-gold{background:rgba(251,191,36,.1);border:2px solid rgba(251,191,36,.6);
+  color:var(--gold);font-size:1.2rem;letter-spacing:.08em;padding:17px;}
+.btn-danger{background:rgba(248,113,113,.1);border:2px solid rgba(248,113,113,.5);
+  color:var(--red);font-family:'Crimson Text',serif;font-size:1.1rem;letter-spacing:.03em;}
+.btn-warn{background:rgba(251,191,36,.12);border:2px solid rgba(251,191,36,.55);
+  color:var(--gold);font-family:'Crimson Text',serif;font-size:1.05rem;letter-spacing:.03em;}
+
+.play-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;
+  padding:4px 15px 15px;width:100%;max-width:480px;margin-bottom:12px;}
+.msect{display:flex;flex-direction:column;align-items:center;
+  padding:16px 0 12px;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);margin-bottom:12px;width:100%;}
+.rw{position:relative;width:140px;height:140px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.ro{position:absolute;inset:0;border-radius:50%;border:2px solid var(--border);}
+.rring{position:absolute;border-radius:50%;border:2px solid var(--accent);
+  opacity:0;width:18px;height:18px;pointer-events:none;}
+.rring.fire{animation:rExp var(--bd,600ms) ease-out forwards;}
+@keyframes rExp{
+  0%{width:18px;height:18px;opacity:1;border-color:var(--accent);border-width:3px;}
+  70%{opacity:.5;}
+  100%{width:138px;height:138px;opacity:0;border-color:var(--accent2);border-width:1px;}}
+.rc{width:18px;height:18px;border-radius:50%;background:var(--accent);
+  position:relative;z-index:1;box-shadow:0 0 14px var(--glow);}
+.rc.pop{animation:cPop .1s ease-out forwards;}
+@keyframes cPop{0%{transform:scale(1);}50%{transform:scale(1.8);}100%{transform:scale(1);}}
+.mbrow{display:flex;align-items:baseline;gap:5px;margin-bottom:3px;}
+.mb{font-size:2.4rem;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1;}
+.mbu{font-size:.52rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;}
+.blbl{font-size:.48rem;letter-spacing:.35em;color:var(--accent2);
+  text-transform:uppercase;opacity:0;min-height:14px;}
+.blbl.flash{opacity:1;}
+.plbl{font-family:'Crimson Text',serif;font-style:italic;font-size:1rem;
+  color:var(--muted);margin-top:5px;text-align:center;min-height:1.4em;}
+.mbtn{padding:7px 18px;border:1px solid var(--border);border-radius:8px;
+  background:var(--surf2);color:var(--muted);font-family:'Cinzel',serif;
+  font-size:.72rem;letter-spacing:.12em;cursor:pointer;text-transform:uppercase;margin-top:8px;}
+.mbtn.muted{color:var(--red);border-color:rgba(248,113,113,.4);}
+
+.st-wrap{width:100%;padding:10px 0 4px;}
+.st-track{width:100%;height:8px;background:var(--surf2);border-radius:4px;overflow:hidden;}
+.st-fill{height:100%;background:linear-gradient(to right,var(--accent),var(--accent2));
+  border-radius:4px;transition:width .8s linear;width:100%;}
+.st-time{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold);
+  text-align:center;letter-spacing:.06em;margin-top:4px;}
+
+.pipr{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+  margin-bottom:12px;width:100%;max-width:480px;}
+.ep{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);
+  background:var(--surf2);transition:all .3s;}
+.ep.done{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px var(--glow);}
+.ep.over{background:var(--red);border-color:var(--red);}
+
+.cio{position:fixed;inset:0;background:#070d18;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;padding:24px 20px;opacity:0;pointer-events:none;transition:opacity .3s;}
+.cio.show{opacity:1;pointer-events:all;}
+.ci-inner-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;}
+.cit{font-family:'Cinzel',serif;font-size:1.15rem;letter-spacing:.12em;
+  color:var(--text);text-align:center;margin-bottom:5px;}
+/* ── 5-CARD CHECK-IN ── */
+.ci-mode{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent2);margin-bottom:14px;text-align:center;}
+.cis{color:var(--muted);font-style:italic;font-size:.95rem;text-align:center;
+  margin-bottom:18px;line-height:1.5;}
+.ci-cards{display:flex;flex-direction:column;gap:8px;width:100%;}
+.ci-card{
+  width:100%;border-radius:10px;display:flex;align-items:center;
+  gap:0;cursor:pointer;border:none;overflow:hidden;
+  transition:transform .12s, filter .12s;
+}
+.ci-card:active{transform:scale(.98);filter:brightness(1.12);}
+.ci-bar{flex-shrink:0;align-self:stretch;}
+.ci-inner{
+  flex:1;display:flex;align-items:center;
+  justify-content:space-between;
+}
+.ci-text{
+  font-family:'Cinzel',serif;font-size:.82rem;
+  letter-spacing:.12em;text-transform:uppercase;font-weight:500;
+}
+.ci-dot{border-radius:50%;flex-shrink:0;}
+
+.big-n{font-family:'Cinzel',serif;font-size:clamp(3.5rem,15vw,6rem);
+  color:var(--gold);text-align:center;line-height:1;
+  filter:drop-shadow(0 0 24px rgba(251,191,36,.45));}
+.break-lbl{font-family:'Cinzel',serif;letter-spacing:.14em;color:var(--muted);font-size:.84rem;text-align:center;}
+
+/* ── CHALLENGE MODE ── */
+.warn-box{background:rgba(248,113,113,.08);border:2px solid rgba(248,113,113,.35);
+  border-radius:12px;padding:14px 16px;margin-bottom:14px;width:100%;max-width:480px;}
+.warn-box .wt{font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--red);margin-bottom:8px;}
+.warn-box p{font-size:.96rem;line-height:1.6;color:var(--text);margin-bottom:6px;}
+.warn-box p:last-child{margin-bottom:0;}
+.spark-display{font-family:'Courier New',monospace;font-size:1.3rem;letter-spacing:.03em;
+  text-align:center;padding:10px 4px;word-break:break-all;line-height:1.4;}
+.spark-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.spark-row .sl{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);}
+.spark-row .sv{font-family:'Courier New',monospace;font-size:1.15rem;letter-spacing:.02em;
+  word-break:break-all;line-height:1.5;}
+.reveal-line{display:flex;justify-content:space-between;align-items:baseline;
+  padding:9px 0;border-bottom:1px solid var(--border);font-size:1.05rem;}
+.reveal-line:last-child{border-bottom:none;}
+.reveal-line .l{color:var(--muted);}
+.narrative{font-style:italic;color:var(--text);font-size:1.02rem;line-height:1.6;
+  text-align:center;padding:12px 4px;}
+.mode-reminder{font-family:'Crimson Text',serif;font-style:italic;font-size:.9rem;
+  color:var(--accent2);text-align:center;margin-top:4px;margin-bottom:2px;opacity:.85;}
+
+.ss{display:flex;justify-content:space-between;align-items:baseline;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:1.05rem;}
+.ss:last-child{border-bottom:none;}
+.ss .l{color:var(--muted);}.ss .v{font-weight:600;}
+.ca{color:var(--accent);}.cg{color:var(--gold);}.cr{color:var(--red);}.cgr{color:var(--green);}
+.stbl{width:100%;border-collapse:collapse;font-size:.92rem;}
+.stbl th{color:var(--accent);font-family:'Cinzel',serif;font-size:.67rem;
+  letter-spacing:.11em;text-transform:uppercase;padding:5px 3px;text-align:left;
+  border-bottom:1px solid var(--border);}
+.stbl td{padding:6px 3px;color:var(--text);border-bottom:1px solid rgba(42,58,85,.4);}
+.stbl tr:last-child td{border-bottom:none;}
+.sbox{background:var(--surf2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-family:'Crimson Text',serif;font-size:.96rem;line-height:1.6;
+  color:var(--text);white-space:pre-wrap;word-break:break-word;user-select:all;margin-bottom:10px;}
+.abadge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;
+  border:1px solid var(--accent2);border-radius:20px;background:rgba(129,140,248,.1);
+  font-size:.78rem;color:var(--accent2);font-family:'Cinzel',serif;
+  letter-spacing:.08em;margin-bottom:8px;}
+
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#000;padding:10px 24px;border-radius:24px;
+  font-family:'Cinzel',serif;font-size:.9rem;letter-spacing:.1em;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;}
+#toast.show{opacity:1;}
+.div{border:none;border-top:1px solid var(--border);margin:9px 0;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt20{margin-top:20px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ WELCOME ══════════ -->
+<div id="scrWelcome" class="screen active">
+  <div class="page-title">THE METRONOME EDGER</div>
+  <div class="page-sub">build your edge, one wave at a time</div>
+
+  <div class="card">
+    <div class="card-title">Pattern</div>
+    <div class="pgrid">
+      <button class="pb sel" onclick="selP('waves',this)">
+        <span class="pn">Waves</span><span class="pd">Oscillating climbs, each crest higher</span>
+      </button>
+      <button class="pb" onclick="selP('slowburn',this)">
+        <span class="pn">Slow Burn</span><span class="pd">Long gradual staircase — patience is key</span>
+      </button>
+      <button class="pb" onclick="selP('pulse',this)">
+        <span class="pn">Pulse</span><span class="pd">Fast bursts then drops — ceiling rises each cycle</span>
+      </button>
+      <button class="pb" onclick="selP('erratic',this)">
+        <span class="pn">Erratic</span><span class="pd">Random speeds, random durations</span>
+      </button>
+      <button class="pb" onclick="selP('abuild',this)">
+        <span class="pn">Adaptive: Build</span><span class="pd">Guides you toward your edge with check-ins every ~90s</span>
+      </button>
+      <button class="pb" onclick="selP('asustain',this)">
+        <span class="pn">Adaptive: Sustain</span><span class="pd">Holds you just under the edge — press ⚡ to back off</span>
+      </button>
+    </div>
+    <div id="pInfo" style="font-size:.93rem;color:var(--muted);font-style:italic;line-height:1.5;min-height:2em;"></div>
+  </div>
+
+  <!-- Difficulty — hidden for adaptive modes -->
+  <div class="card" id="diffCard">
+    <div class="card-title">Difficulty</div>
+    <div class="drow">
+      <button class="db" onclick="selD('easy',this)">Easy</button>
+      <button class="db sel" onclick="selD('medium',this)">Medium</button>
+      <button class="db" onclick="selD('hard',this)">Hard</button>
+    </div>
+    <div id="dInfo" style="font-size:.88rem;color:var(--muted);font-style:italic;margin-top:8px;min-height:1.2em;"></div>
+  </div>
+
+  <!-- Adaptive sub-pattern — for both abuild and asustain -->
+  <div class="xcol closed" id="sustainPatCard">
+    <div class="card">
+      <div class="card-title">Pattern Style</div>
+      <p class="card-desc">Which underlying pattern shapes the rhythm.</p>
+      <div class="sprow">
+        <button class="spb sel" onclick="selSP('waves',this)">Waves</button>
+        <button class="spb" onclick="selSP('slowburn',this)">Slow Burn</button>
+        <button class="spb" onclick="selSP('pulse',this)">Pulse</button>
+        <button class="spb" onclick="selSP('erratic',this)">Erratic</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sustain duration — only for asustain -->
+  <div class="xcol closed" id="sustainDurCard">
+    <div class="card">
+      <div class="card-title">Session Duration</div>
+      <p class="card-desc">How long to keep you just under the edge.</p>
+      <div class="nrow">
+        <button class="nb" onclick="adj('sMins',-1,1,60)">−</button>
+        <div class="nd" id="sMins">10</div>
+        <button class="nb" onclick="adj('sMins',1,1,60)">+</button>
+      </div>
+      <div style="font-size:.88rem;color:var(--muted);margin-top:5px;">minutes</div>
+    </div>
+  </div>
+
+  <!-- Speed range -->
+  <div class="card">
+    <div class="card-title">Speed Range (BPM)</div>
+    <p class="card-desc">Set automatically. Adjust to override.</p>
+    <label>Minimum &nbsp;<span class="rv" id="mnV">30</span> bpm</label>
+    <input type="range" id="mnS" min="10" max="100" value="30"
+      oninput="sSlider(this,'mnV',10,100);clampMax()">
+    <div class="rr"><span>10 bpm</span><span>100 bpm</span></div>
+    <label class="mt8">Maximum &nbsp;<span class="rv" id="mxV">90</span> bpm</label>
+    <input type="range" id="mxS" min="30" max="200" value="90"
+      oninput="sSlider(this,'mxV',30,200);clampMin()">
+    <div class="rr"><span>30 bpm</span><span>200 bpm</span></div>
+  </div>
+
+  <!-- Edges — hidden for asustain -->
+  <div class="card" id="edgesCard">
+    <div class="card-title">Number of Edges</div>
+    <div class="trow">
+      <div class="tog on" id="togOpen" onclick="togO()"></div>
+      <span class="tlbl">Open session — no target</span>
+    </div>
+    <div class="xcol closed" id="edgeW">
+      <hr class="div">
+      <label>Target edges</label>
+      <div class="nrow">
+        <button class="nb" onclick="adj('eC',-1,1,20)">−</button>
+        <div class="nd" id="eC">5</div>
+        <button class="nb" onclick="adj('eC',1,1,20)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Between edges — hidden for asustain -->
+  <div class="card" id="breakCard">
+    <div class="card-title">Between Edges</div>
+    <div class="trow">
+      <div class="tog" id="togAuto" onclick="togA()"></div>
+      <span class="tlbl" id="autoLbl">Manual — I'll press "Next Edge" myself</span>
+    </div>
+    <div class="xcol closed" id="breakW">
+      <hr class="div">
+      <label>Break duration (seconds)</label>
+      <div class="nrow">
+        <button class="nb" onclick="adj('bS',-10,10,300)">−</button>
+        <div class="nd" id="bS">30</div>
+        <button class="nb" onclick="adj('bS',10,10,300)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startSession()">Begin Session</button>
+  <div style="margin-top:14px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.18em;color:var(--muted);opacity:.5;">v24</div>
+</div>
+
+<!-- ══════════ PLAY ══════════ -->
+<div id="scrPlay" class="screen">
+  <div class="page-title" style="font-size:clamp(1.1rem,4vw,1.7rem);margin-bottom:3px;">THE METRONOME EDGER</div>
+  <div id="abadge" class="abadge" style="display:none;"></div>
+  <div class="mode-reminder" id="modeReminder" style="display:none;"></div>
+  <div class="pipr" id="pipR"></div>
+
+  <div class="play-card">
+    <div id="stWrap" style="display:none;" class="st-wrap">
+      <div class="st-track"><div class="st-fill" id="stFill"></div></div>
+      <div class="st-time" id="stTime">—</div>
+    </div>
+    <div class="msect">
+      <div class="rw">
+        <div class="ro"></div>
+        <div class="rring" id="rring"></div>
+        <div class="rc" id="rc"></div>
+      </div>
+      <div class="mbrow">
+        <div class="mb" id="mBpm">—</div>
+        <div class="mbu">bpm</div>
+      </div>
+      <div class="blbl" id="bLbl">BEAT</div>
+      <div class="plbl" id="pLbl"></div>
+      <button class="mbtn" id="muteBtn" onclick="togMute()">mute</button>
+    </div>
+  </div>
+
+  <!-- Normal session buttons -->
+  <div id="normalPlayBtns" style="width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center;">
+    <!-- ⚡ I'm close — adaptive sustain only -->
+    <button class="btn btn-warn" id="closeBtn" style="display:none;" onclick="playerClose()">
+      ⚡ Stop - I'm going to edge
+    </button>
+    <button class="btn btn-gold" id="edgedBtn" onclick="playerEdged()">✦ I've Edged</button>
+    <button class="btn btn-danger" onclick="wentOver()">⚠ I went over the edge</button>
+    <button class="btn btn-ghost" onclick="endSession()">End Session</button>
+  </div>
+
+  <!-- Challenge playback buttons — no ⚡, no I've Edged -->
+  <div id="challengePlayBtns" style="display:none;width:100%;max-width:480px;flex-direction:column;align-items:center;">
+    <button class="btn btn-danger" onclick="challengeWentOver()">⚠ I went over the edge</button>
+    <button class="btn btn-ghost" onclick="challengeQuit()">Tap out</button>
+  </div>
+</div>
+
+<!-- ══════════ BREAK ══════════ -->
+<div id="scrBreak" class="screen">
+  <div class="page-title" style="font-size:clamp(1.1rem,4vw,1.7rem);margin-bottom:4px;">THE METRONOME EDGER</div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:480px;gap:13px;">
+    <p class="break-lbl" id="breakLbl">BREAK</p>
+    <div class="big-n" id="brkN">—</div>
+    <p style="font-size:1.1rem;font-style:italic;color:var(--muted);text-align:center;">
+      Rest. Let the sensation fade completely.
+    </p>
+    <button class="btn btn-secondary mt20" id="skipBtn" onclick="startNextEdge()">Next Edge</button>
+    <button class="btn btn-ghost" onclick="endSession()">End Session</button>
+  </div>
+</div>
+
+<!-- ══════════ SUMMARY ══════════ -->
+<div id="scrSummary" class="screen">
+  <div class="page-title" style="font-size:clamp(1.4rem,5vw,2.2rem);margin-bottom:4px;">Session Complete</div>
+  <div class="page-sub">here's how you did</div>
+  <div class="card" id="sumStats"></div>
+  <div class="card">
+    <div class="card-title">Edge Splits</div>
+    <table class="stbl" id="splitsT"></table>
+  </div>
+  <div class="card">
+    <div class="card-title">Share</div>
+    <div class="sbox" id="shareBox"></div>
+    <button class="btn btn-secondary" onclick="doCopy('shareBox')">Copy to clipboard</button>
+  </div>
+  <!-- Challenge a Friend — sustain mode only, shown/hidden by JS -->
+  <div class="card" id="challengeCard" style="display:none;">
+    <div class="card-title">Challenge a Friend</div>
+    <p class="card-desc">Send this exact ride to someone else. Can they also stay under the edge?</p>
+    <div class="sbox" id="challengeBox"></div>
+    <button class="btn btn-secondary" onclick="doCopy('challengeBox')">Copy challenge link</button>
+  </div>
+  <button class="btn btn-primary" onclick="resetAll()">New Session</button>
+</div>
+
+<!-- ══════════ CHALLENGE INVITE ══════════ -->
+<div id="scrChallengeInvite" class="screen">
+  <div class="page-title" style="font-size:clamp(1.4rem,5vw,2.2rem);margin-bottom:4px;">You've Been Challenged</div>
+  <div class="page-sub" id="chInviteSub">someone wants to know if you can do this too</div>
+
+  <div class="card">
+    <div class="card-title">The Ride</div>
+    <div class="ss"><span class="l">Pattern</span><span class="v" id="chInvitePattern">—</span></div>
+    <div class="ss"><span class="l">Duration</span><span class="v" id="chInviteDuration">—</span></div>
+    <div class="ss"><span class="l">Peak speed</span><span class="v" id="chInvitePeak">—</span></div>
+    <div class="spark-display" id="chInviteSpark"></div>
+  </div>
+
+  <div class="warn-box">
+    <div class="wt">⚠ Before you start</div>
+    <p>This is a fixed replay of someone else's Adaptive Sustain session — the exact speeds, in the exact order they experienced them.</p>
+    <p><strong>There's no emergency button here.</strong> If you tip over the edge, tap "I went over." If you'd rather stop before that happens, tap "Quit" at any time. Either one ends your attempt.</p>
+  </div>
+
+  <button class="btn btn-primary" onclick="challengeAccept()">Accept Challenge</button>
+  <button class="btn btn-ghost" onclick="challengeBackToGame()">Not right now</button>
+</div>
+
+<!-- ══════════ CHALLENGE COMPARISON ══════════ -->
+<div id="scrChallengeCompare" class="screen">
+  <div class="page-title" style="font-size:clamp(1.4rem,5vw,2.2rem);margin-bottom:4px;">Challenge Complete</div>
+  <div class="page-sub">here's how it compares</div>
+  <div class="card" id="compStats"></div>
+  <div class="card">
+    <div class="card-title">The Comparison</div>
+    <div id="compGraph"></div>
+    <div class="narrative" id="compNarrative"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Share To Discord</div>
+    <div class="sbox" id="compShareBox"></div>
+    <button class="btn btn-secondary" onclick="doCopy('compShareBox')">Copy result for Discord</button>
+  </div>
+  <button class="btn btn-primary" onclick="challengeBackToGame()">Play The Game</button>
+</div>
+
+<!-- ══════════ CHECK-IN OVERLAY ══════════ -->
+<div class="cio" id="ciO">
+  <div class="ci-inner-wrap">
+    <div class="ci-mode" id="ciMode"></div>
+    <div class="cis" id="ciSub">Where are you right now?</div>
+    <div class="ci-cards">
+
+      <!-- Extremely close — solid deep red — 5 flames -->
+      <div class="ci-card" style="background:#7f1d1d;min-height:58px;" onclick="ciCardTap(92)">
+        <div class="ci-bar" style="width:5px;background:#ef4444;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#fca5a5;font-size:1.35rem;letter-spacing:.04em;">🔥🔥🔥🔥🔥</span>
+          <div class="ci-dot" style="width:22px;height:22px;background:#ef4444;"></div>
+        </div>
+      </div>
+
+      <!-- Very close — solid deep orange — 4 flames -->
+      <div class="ci-card" style="background:#7c2d12;min-height:52px;" onclick="ciCardTap(72)">
+        <div class="ci-bar" style="width:4px;background:#f97316;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#fb923c;font-size:1.25rem;letter-spacing:.04em;">🔥🔥🔥🔥</span>
+          <div class="ci-dot" style="width:17px;height:17px;background:#f97316;"></div>
+        </div>
+      </div>
+
+      <!-- Building — solid deep amber — 3 flames -->
+      <div class="ci-card" style="background:#713f12;min-height:46px;" onclick="ciCardTap(50)">
+        <div class="ci-bar" style="width:3px;background:#eab308;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#facc15;font-size:1.15rem;letter-spacing:.04em;">🔥🔥🔥</span>
+          <div class="ci-dot" style="width:13px;height:13px;background:#eab308;"></div>
+        </div>
+      </div>
+
+      <!-- Settling in — solid deep lime — 2 flames -->
+      <div class="ci-card" style="background:#1a2e05;min-height:42px;" onclick="ciCardTap(28)">
+        <div class="ci-bar" style="width:3px;background:#84cc16;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#a3e635;font-size:1.05rem;letter-spacing:.04em;">🔥🔥</span>
+          <div class="ci-dot" style="width:9px;height:9px;background:#84cc16;"></div>
+        </div>
+      </div>
+
+      <!-- Calm — solid deep green — 1 flame -->
+      <div class="ci-card" style="background:#052e16;min-height:38px;" onclick="ciCardTap(10)">
+        <div class="ci-bar" style="width:2px;background:#22c55e;align-self:stretch;"></div>
+        <div class="ci-inner" style="padding:0 16px;">
+          <span class="ci-text" style="color:#4ade80;font-size:.95rem;letter-spacing:.04em;">🔥</span>
+          <div class="ci-dot" style="width:6px;height:6px;background:#22c55e;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast">Copied!</div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const CFG={
+  preset:'waves', diff:'medium', sustainPat:'waves',
+  minBpm:30, maxBpm:90,
+  openSession:true, targetEdges:5,
+  autoStart:false, breakSecs:30,
+  sustainMins:10,
+};
+
+const RANGES={
+  waves:    {easy:[25,70],  medium:[30,95],  hard:[35,130]},
+  slowburn: {easy:[22,65],  medium:[26,82],  hard:[30,100]},
+  pulse:    {easy:[30,80],  medium:[38,115], hard:[45,145]},
+  erratic:  {easy:[20,75],  medium:[25,110], hard:[30,150]},
+  abuild:   {easy:[28,100], medium:[32,130], hard:[38,165]},
+  asustain: {easy:[28,95],  medium:[32,125], hard:[38,160]},
+};
+
+const PINFO={
+  waves:    'Ascending wave pairs — each crest higher than the last. The floor rises across your session.',
+  slowburn: 'One long staircase. Each step held 35–90 seconds. Patience is the whole point.',
+  pulse:    'Short fast bursts followed by a recovery drop. Each cycle the burst grows longer, the drop shorter.',
+  erratic:  'Fully random speeds for random durations. Different every edge. Unpredictable by design.',
+  abuild:   'Goal: get you to your edge. Pick a pattern style, then the game adjusts its range from check-ins every ~90 seconds to push you closer. Learns your range across sessions.',
+  asustain: 'Goal: keep you just under the edge — deliciously close, not over. Pick a pattern style and a duration. Press ⚡ if you\'re about to tip — it backs right off. Check-ins fine-tune the ceiling every ~90 seconds.',
+};
+const DINFO={
+  easy:  'Longer, gentler builds. More time to react.',
+  medium:'Balanced ramp and hold times.',
+  hard:  'Faster climbs, shorter holds, higher peaks.',
+};
+
+// ════════════════════════════════════════════
+// SESSION STATE
+// ════════════════════════════════════════════
+const G={
+  // metro (Daily Edge web-audio scheduler architecture)
+  metroToken:0, timerDone:false, schedulerActive:false,
+  audioCtx:null, muted:false,
+  nextBeatTime:0, schedulerTimerId:null, blockTimerId:null,
+  currentBpm:60, beatFlashId:null, blocks:[], loopFromIdx:0,
+  scheduledOscs:[], // tracked for stale-click cancellation
+  noLoop:false, onSequenceComplete:null, // used by challenge playback
+  // session
+  edges:[], edgeStarts:[], currentEdge:0, sessionStart:null,
+  breakTimer:null, breakRemaining:0,
+  peakBpmSeen:0,
+  // adaptive
+  adFloor:0, adCeiling:0, ciTimer:null, lastCI:0, profile:null,
+  // arousal model
+  arousal:20,          // 0-100: internal estimate of player proximity to edge
+  arousalTimer:null,   // interval that updates arousal continuously
+  ciOpen:false,        // true while check-in overlay is showing
+  lastZapTime:0,       // timestamp of last ⚡ press
+  lastCITime:0,        // timestamp when last check-in was shown
+  ciHistory:[],        // last 4 check-in levels
+  bpmSamples:[],       // BPM sampled every 30s for avg + sparkline
+  bpmSampleTimer:null, // interval for BPM sampling
+  recordedBlocks:[],   // every block played during a live asustain session (for challenge generation)
+  // sustain
+  sustainTimer:null, sustainRemaining:0, sustainTotal:0,
+  // challenge mode
+  challengeMode:false,   // true while playing back someone else's challenge
+  challengeData:null,    // decoded challenge payload
+  challengeStartTime:0,
+  challengeElapsed:0,
+  challengeTotal:0,
+  challengeUITimer:null,
+};
+const LOOK=0.10, SCHIV=25;
+
+// ════════════════════════════════════════════
+// WELCOME UI
+// ════════════════════════════════════════════
+function selP(name,el){
+  CFG.preset=name;
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('pInfo').textContent=PINFO[name]||'';
+  const isAd=name==='abuild'||name==='asustain';
+  const isSus=name==='asustain';
+  document.getElementById('diffCard').style.display=isAd?'none':'';
+  document.getElementById('edgesCard').style.display=isSus?'none':'';
+  document.getElementById('breakCard').style.display=isSus?'none':'';
+  // Pattern style shows for both adaptive modes
+  xCol('sustainPatCard',isAd);
+  // Session duration is sustain-only
+  xCol('sustainDurCard',isSus);
+  applyRanges();
+}
+function selD(d,el){
+  CFG.diff=d;
+  document.querySelectorAll('.db').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('dInfo').textContent=DINFO[d]||'';
+  applyRanges();
+}
+function selSP(p,el){
+  CFG.sustainPat=p;
+  document.querySelectorAll('#sustainPatCard .spb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function applyRanges(){
+  const k=CFG.preset in RANGES?CFG.preset:'waves';
+  // Adaptive modes don't use difficulty — default to medium range
+  const d=(CFG.preset==='abuild'||CFG.preset==='asustain')?'medium':(CFG.diff in RANGES[k]?CFG.diff:'medium');
+  const[mn,mx]=RANGES[k][d];
+  const me=document.getElementById('mnS'),xe=document.getElementById('mxS');
+  me.value=mn; sSlider(me,'mnV',10,100);
+  xe.value=mx; sSlider(xe,'mxV',30,200);
+}
+function sSlider(el,id,mn,mx){
+  document.getElementById(id).textContent=el.value;
+  el.style.setProperty('--pct',((el.value-mn)/(mx-mn)*100)+'%');
+}
+function clampMax(){
+  const mn=+document.getElementById('mnS').value,e=document.getElementById('mxS');
+  if(+e.value<mn+10){e.value=mn+10;sSlider(e,'mxV',30,200);}
+}
+function clampMin(){
+  const mx=+document.getElementById('mxS').value,e=document.getElementById('mnS');
+  if(+e.value>mx-10){e.value=mx-10;sSlider(e,'mnV',10,100);}
+}
+function togO(){
+  CFG.openSession=!CFG.openSession;
+  document.getElementById('togOpen').classList.toggle('on',CFG.openSession);
+  xCol('edgeW',!CFG.openSession);
+}
+function togA(){
+  CFG.autoStart=!CFG.autoStart;
+  document.getElementById('togAuto').classList.toggle('on',CFG.autoStart);
+  document.getElementById('autoLbl').textContent=CFG.autoStart
+    ?'Auto — starts after break timer':'Manual — I\'ll press "Next Edge" myself';
+  xCol('breakW',CFG.autoStart);
+}
+function xCol(id,open){
+  const e=document.getElementById(id);
+  e.classList.toggle('closed',!open);
+  e.classList.toggle('open',open);
+}
+function adj(id,d,mn,mx){
+  const e=document.getElementById(id);
+  e.textContent=Math.max(mn,Math.min(mx,+e.textContent+d));
+}
+
+// ════════════════════════════════════════════
+// AUDIO — exact Daily Edge web-audio scheduler
+// ════════════════════════════════════════════
+function getAC(){
+  if(!G.audioCtx)G.audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return G.audioCtx;
+}
+function resAC(){if(G.audioCtx&&G.audioCtx.state==='suspended')G.audioCtx.resume();}
+
+function schClick(t,tok){
+  if(G.muted)return;
+  try{
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type='sine';o.frequency.value=700;
+    g.gain.setValueAtTime(0.22,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+    o.start(t);o.stop(t+0.07);
+    // Track this scheduled click so we can cancel it if the metro token changes
+    // before it fires (prevents double-notes during pattern transitions).
+    if(!G.scheduledOscs) G.scheduledOscs = [];
+    G.scheduledOscs.push({osc:o, gain:g, fireTime:t, tok:tok});
+    // Clean up after it fires (to avoid array growing forever)
+    setTimeout(()=>{
+      if(!G.scheduledOscs) return;
+      G.scheduledOscs = G.scheduledOscs.filter(s => s.osc !== o);
+    }, Math.max(0, (t-ac.currentTime)*1000) + 100);
+  }catch(e){}
+}
+
+// Cancel any clicks that were pre-scheduled for an older metro token but
+// haven't actually played yet. Called when transitioning to a new pattern
+// to prevent the old token's lookahead beats from doubling up with the new
+// token's first beats.
+function cancelStaleClicks(){
+  if(!G.scheduledOscs) return;
+  const ac = getAC();
+  const now = ac.currentTime;
+  G.scheduledOscs = G.scheduledOscs.filter(s => {
+    if(s.tok !== G.metroToken && s.fireTime > now){
+      // Hasn't fired yet — silence it by ramping gain to zero immediately
+      try{
+        s.gain.gain.cancelScheduledValues(now);
+        s.gain.gain.setValueAtTime(0, now);
+        s.osc.stop(now + 0.001);
+      }catch(e){}
+      return false;
+    }
+    return true;
+  });
+}
+
+// Two-tone chime to signal a mandatory check-in is firing.
+// Soft, mellow timbre — sine wave with slow attack/decay so it fades in
+// gently rather than stabbing. Volume kept low so it doesn't startle.
+function playCheckinCue(){
+  try{
+    const ac=getAC();
+    const t0=ac.currentTime+0.02;
+    // Two notes: warm A4 (440 Hz) then E4 (330 Hz) — a fifth below
+    [{f:440,t:0},{f:330,t:0.40}].forEach(n=>{
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type='sine';
+      o.frequency.value=n.f;
+      const start = t0 + n.t;
+      // Very gentle envelope: slow attack, low peak (0.08), long decay
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.08, start+0.12);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.65);
+      o.start(start); o.stop(start+0.68);
+    });
+  }catch(e){}
+}
+
+function schPulse(t,bpm,tok){
+  const ac=getAC(),delay=(t-ac.currentTime)*1000;
+  setTimeout(()=>{
+    if(tok!==G.metroToken||G.timerDone)return;
+    const r=document.getElementById('rring'),c=document.getElementById('rc');
+    if(!r||!c)return;
+    r.style.setProperty('--bd',Math.round(60000/bpm)+'ms');
+    r.classList.remove('fire');void r.offsetWidth;r.classList.add('fire');
+    c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');
+    const b=document.getElementById('bLbl');
+    if(b){b.classList.add('flash');clearTimeout(G.beatFlashId);
+      G.beatFlashId=setTimeout(()=>b&&b.classList.remove('flash'),80);}
+  },Math.max(0,delay));
+}
+
+function runSched(tok){
+  if(tok!==G.metroToken||!G.schedulerActive)return;
+  const ac=getAC(),spb=60/G.currentBpm;
+  while(G.nextBeatTime<ac.currentTime+LOOK){
+    schClick(G.nextBeatTime, tok);
+    schPulse(G.nextBeatTime,G.currentBpm,tok);
+    G.nextBeatTime+=spb;
+  }
+  G.schedulerTimerId=setTimeout(()=>runSched(tok),SCHIV);
+}
+
+function startMetro(blocks){
+  // Increment token first — this kills any running scheduler/block chain
+  G.metroToken++;
+  // Cancel any clicks pre-scheduled by the old token that haven't fired yet
+  cancelStaleClicks();
+  G.timerDone=false;
+  G.schedulerActive=true;
+  G.blocks=blocks;
+  G.loopFromIdx = (blocks._loopFrom != null) ? blocks._loopFrom : 0;
+  G.currentBpm=blocks[0].bpm;
+  G.nextBeatTime=getAC().currentTime+0.05;
+  runSched(G.metroToken);
+  schBlock(0,G.metroToken);
+}
+
+function schBlock(idx,tok){
+  if(tok!==G.metroToken||G.timerDone)return;
+  const len = G.blocks.length;
+  if(len===0) return; // safety
+  let realIdx;
+  if(idx < len){
+    realIdx = idx;
+  }else if(G.noLoop){
+    // Sequence complete — used by challenge playback. Stop here, don't loop,
+    // and fire the completion callback exactly once.
+    G.timerDone = true;
+    if(typeof G.onSequenceComplete === 'function'){
+      const cb = G.onSequenceComplete;
+      G.onSequenceComplete = null;
+      cb();
+    }
+    return;
+  }else{
+    // Loop from loopFromIdx — defensive: ensure loopLen > 0
+    const loopFrom = Math.min(G.loopFromIdx, len-1);
+    const loopLen = Math.max(1, len - loopFrom);
+    realIdx = loopFrom + ((idx - loopFrom) % loopLen);
+  }
+  const b=G.blocks[realIdx];
+  G.currentBpm=b.bpm;
+  if(b.bpm>G.peakBpmSeen) G.peakBpmSeen=b.bpm;
+  // Record every block played during a LIVE (non-challenge) sustain session,
+  // so it can be turned into a challenge afterward. Never record during
+  // challenge playback itself (that would just re-record the fixed sequence).
+  if(CFG.preset==='asustain' && !G.challengeMode){
+    G.recordedBlocks.push({bpm: Math.max(1,Math.round(b.bpm)), secs: Math.max(1,Math.round(b.secs))});
+  }
+  const bpmEl=document.getElementById('mBpm');
+  const pEl=document.getElementById('pLbl');
+  if(bpmEl)bpmEl.textContent=Math.round(b.bpm);
+  if(pEl)pEl.textContent=b.phase||'';
+  if(G.blockTimerId)clearTimeout(G.blockTimerId);
+  G.blockTimerId=setTimeout(()=>schBlock(idx+1,tok),b.secs*1000);
+}
+
+function stopMetro(){
+  G.metroToken++;
+  cancelStaleClicks();
+  G.timerDone=true;
+  G.schedulerActive=false;
+  G.noLoop=false;
+  G.onSequenceComplete=null;
+  if(G.blockTimerId){clearTimeout(G.blockTimerId);G.blockTimerId=null;}
+  if(G.schedulerTimerId){clearTimeout(G.schedulerTimerId);G.schedulerTimerId=null;}
+}
+
+function startMetroSmooth(blocks){
+  if(!blocks || blocks.length===0){ startMetro(blocks); return; }
+  const fromBpm = G.currentBpm || blocks[0].bpm;
+  const toBpm = blocks[0].bpm;
+  const diff = Math.abs(toBpm - fromBpm);
+
+  // If the gap is tiny, no bridge needed
+  if(diff < 6){ startMetro(blocks); return; }
+
+  // Build a bridge: 1 block for small gap, 2 for larger
+  const bridge = [];
+  if(diff < 18){
+    const mid = snap((fromBpm + toBpm) / 2);
+    bridge.push({bpm: mid, secs: 3, phase: ''});
+  }else{
+    const step1 = snap(fromBpm + (toBpm - fromBpm) * 0.4);
+    const step2 = snap(fromBpm + (toBpm - fromBpm) * 0.75);
+    bridge.push({bpm: step1, secs: 2.5, phase: ''});
+    bridge.push({bpm: step2, secs: 2.5, phase: ''});
+  }
+  const merged = [...bridge, ...blocks];
+  if(blocks._loopFrom != null){
+    merged._loopFrom = blocks._loopFrom + bridge.length;
+  }
+  startMetro(merged);
+}
+
+function togMute(){
+  G.muted=!G.muted;
+  const b=document.getElementById('muteBtn');
+  b.textContent=G.muted?'unmute':'mute';
+  b.classList.toggle('muted',G.muted);
+  if(!G.muted)resAC();
+}
+
+// ════════════════════════════════════════════
+// PATTERNS
+// All pattern generators receive (edgeNum, lo, hi) explicitly
+// so adaptive modes can pass their adjusted floor/ceiling.
+//
+// Each pattern is split into:
+//   1. BUILD blocks — one-time climb from floor toward peak (plays once)
+//   2. SUSTAIN blocks — loop point (_loopFrom) sets where cycling restarts
+//      after the build, so the player is held near peak with variation
+//      instead of resetting to floor every cycle.
+// ════════════════════════════════════════════
+function snap(b){return Math.round(b);}
+function rnd(a,b){return a+Math.random()*(b-a);}
+const DT={easy:{bs:1.6,hs:1.5},medium:{bs:1.0,hs:1.0},hard:{bs:0.6,hs:0.65}};
+// In adaptive modes, shorten durations to keep things dynamic. The player
+// chose adaptive because they want active engagement, not a slow exploration.
+// Multiplier of ~0.7 makes blocks ~30% shorter than standard medium.
+const ADAPT_DUR = 0.70;
+function dt(){
+  const base = DT[CFG.diff] || DT.medium;
+  if(CFG.preset==='abuild' || CFG.preset==='asustain'){
+    return {bs: base.bs * ADAPT_DUR, hs: base.hs * ADAPT_DUR};
+  }
+  return base;
+}
+
+// Jitter a value by ±pct (e.g. jit(20, 0.2) returns 16-24).
+// Used to add per-edge variation to durations and BPM offsets so that
+// repeated edges don't feel mechanically identical.
+function jit(v, pct){ return v * (1 + (Math.random()*2 - 1) * pct); }
+
+// Shuffle an array in place (Fisher-Yates). Used to vary sustain loop order.
+function shuffle(arr){
+  for(let i=arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── WAVES ─────────────────────────────────────
+// Build: 4 ascending crests with very shallow troughs (don't drop near floor).
+// Sustain loop: 3 high-zone oscillations + peak hold, all in upper third of range.
+// Per-edge variation: durations jitter ±20%, trough depth varies, sustain loop shuffled.
+function pWaves(edgeNum,lo,hi){
+  const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/8);
+  const startFloor=lo+rng*0.32*prog, peak=lo+rng*0.94, t=dt();
+  const baseWs=22*t.bs, baseDs=14*t.bs, baseHs=34*t.hs;
+  const bl=[];
+
+  // BUILD: 4 crests with shallow troughs, durations jittered per edge
+  for(let w=0;w<4;w++){
+    const f=(w+1)/4;
+    const crest=startFloor+(peak-startFloor)*f;
+    // Trough depth varies per edge: 60-78% up from floor toward crest
+    const troughRatio = 0.62 + Math.random()*0.16 + w*0.03;
+    const trough=startFloor+(crest-startFloor)*troughRatio;
+    bl.push({bpm:snap(crest), secs:Math.max(8,Math.round(jit(baseWs, 0.18))), phase:''});
+    if(w<3) bl.push({bpm:snap(trough), secs:Math.max(6,Math.round(jit(baseDs, 0.18))), phase:''});
+  }
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: oscillating waves staying in upper third, with variation
+  // Each cycle of the loop is a mini-wave: rise to peak, recede, rise again.
+  const upperFloor = lo + rng*0.66;
+  const sustainLow = Math.max(upperFloor, snap(peak * (0.78 + Math.random()*0.04)));
+  const sustainMid = Math.max(upperFloor, snap(peak * (0.85 + Math.random()*0.04)));
+  const sustainHigh = snap(peak * (0.92 + Math.random()*0.04));
+
+  // 5 blocks form a wave shape: low → mid → high → mid → low (then loops)
+  // Each duration is moderate so the wave keeps moving — no long holds.
+  bl.push({bpm:sustainMid,    secs:Math.max(8, Math.round(jit(14*t.bs, 0.20))), phase:''});
+  bl.push({bpm:sustainHigh,   secs:Math.max(8, Math.round(jit(18*t.hs, 0.20))), phase:''});
+  bl.push({bpm:snap(peak),    secs:Math.max(10,Math.round(jit(22*t.hs, 0.20))), phase:''});
+  bl.push({bpm:sustainMid,    secs:Math.max(8, Math.round(jit(14*t.bs, 0.20))), phase:''});
+  bl.push({bpm:sustainLow,    secs:Math.max(8, Math.round(jit(12*t.bs, 0.20))), phase:''});
+
+  bl._loopFrom = loopStart;
+  return bl;
+}
+
+// ── SLOW BURN ─────────────────────────────────
+// Build: 6 long staircase steps (identity is the long climb, count stays fixed).
+// Sustain loop: peak with two small dips. Step durations and dip depths jitter.
+function pSlowBurn(edgeNum,lo,hi){
+  const rng=hi-lo, prog=Math.min(1,(edgeNum-1)/6);
+  const startFloor=lo+rng*0.22*prog, peak=lo+rng*0.90, t=dt();
+  const bl=[];
+
+  // BUILD: 6 progressive steps, each duration jittered ±18%
+  for(let s=0;s<6;s++){
+    const f=(s+1)/6, e=f*f*(3-2*f);
+    const baseSecs = (80-s*8)*t.bs;
+    bl.push({bpm:snap(startFloor+(peak-startFloor)*e),
+      secs:Math.max(28,Math.round(jit(baseSecs, 0.18))),
+      phase:''});
+  }
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: small staircase of tiny increments + one drop back.
+  // Preserves Slow Burn's patient "climbing in increments" character even
+  // during sustain. Each block held for a meaningful time but not so long
+  // that it feels static.
+  const sustainLo  = snap(peak * (0.80 + Math.random()*0.04));
+  const sustainMid = snap(peak * (0.86 + Math.random()*0.04));
+  const sustainHi  = snap(peak * (0.92 + Math.random()*0.04));
+
+  // 5 blocks: small staircase climb to peak, then drop to mid, then climb back.
+  // Each step held 25-50s so it still feels patient.
+  bl.push({bpm:sustainLo,   secs:Math.max(20,Math.round(jit(35*t.bs, 0.18))), phase:''});
+  bl.push({bpm:sustainMid,  secs:Math.max(20,Math.round(jit(40*t.bs, 0.18))), phase:''});
+  bl.push({bpm:sustainHi,   secs:Math.max(20,Math.round(jit(45*t.hs, 0.18))), phase:''});
+  bl.push({bpm:snap(peak),  secs:Math.max(20,Math.round(jit(50*t.hs, 0.18))), phase:''});
+  bl.push({bpm:sustainMid,  secs:Math.max(15,Math.round(jit(28*t.bs, 0.18))), phase:''}); // small drop, then loops back to sustainLo
+
+  bl._loopFrom = loopStart;
+  return bl;
+}
+
+// ── PULSE ─────────────────────────────────────
+// Identity: low speed punctuated by SUDDEN, SHORT bursts of high speed.
+// The burst IS the pulse — it should be brief, sharp, and the contrast with
+// the recovery should be dramatic. Build escalates the burst HEIGHT over
+// cycles, not the burst length.
+//
+// Per-cycle: short burst (4-8s) at high BPM, then longer recovery (16-26s)
+// at low BPM. Each subsequent burst climbs higher; recovery stays low.
+function pPulse(edgeNum,lo,hi){
+  const rng=hi-lo, t=dt();
+  // Recovery sits in the lower 20% of range — clearly LOW
+  const recoverLow = lo + rng*0.15;
+  // Bursts climb from mid-range up to peak
+  const bl=[];
+
+  // Brief warm-up at low speed before first pulse
+  bl.push({bpm:snap(recoverLow + rng*0.05),
+    secs:Math.max(8,Math.round(jit(15*t.bs, 0.18))), phase:''});
+
+  // BUILD: 4 escalating bursts. Each burst is SHORT and SHARP.
+  // Burst heights climb: 60% → 72% → 84% → 95% of range
+  const burstHeights = [0.60, 0.72, 0.84, 0.95];
+  for(let c=0; c<4; c++){
+    // BURST — short and sharp (5-8 seconds depending on difficulty)
+    bl.push({bpm:snap(lo + rng*burstHeights[c]),
+      secs:Math.max(4, Math.round(jit(7*t.bs, 0.18))), phase:''});
+    // RECOVERY — drop hard back to low
+    if(c<3){
+      bl.push({bpm:snap(recoverLow + rng*0.04*c),
+        secs:Math.max(14, Math.round(jit(22*t.bs, 0.20))), phase:''});
+    }
+  }
+
+  const loopStart = bl.length;
+
+  // SUSTAIN LOOP: continuing pulses at peak intensity.
+  // Recoveries stay LOW (don't elevate them) — preserve the dramatic contrast.
+  // Burst heights vary slightly per cycle for variety.
+  const sustainRecover = recoverLow + rng*0.08; // 23% of range — still clearly low
+  const sustainBurstHi = snap(lo + rng*(0.94 + Math.random()*0.04));
+  const sustainBurstMd = snap(lo + rng*(0.85 + Math.random()*0.05));
+
+  // Pattern: BURST → recover → BURST → recover → BURST → recover
+  bl.push({bpm:sustainBurstHi,         secs:Math.max(4, Math.round(jit(7*t.hs, 0.20))), phase:''}); // sharp burst
+  bl.push({bpm:snap(sustainRecover),   secs:Math.max(14,Math.round(jit(20*t.bs, 0.20))), phase:''}); // long low
+  bl.push({bpm:sustainBurstMd,         secs:Math.max(4, Math.round(jit(6*t.hs, 0.20))), phase:''}); // sharp burst
+  bl.push({bpm:snap(sustainRecover+2), secs:Math.max(14,Math.round(jit(22*t.bs, 0.20))), phase:''}); // long low
+  bl.push({bpm:sustainBurstHi,         secs:Math.max(4, Math.round(jit(8*t.hs, 0.20))), phase:''}); // sharp burst
+  bl.push({bpm:snap(sustainRecover),   secs:Math.max(14,Math.round(jit(18*t.bs, 0.20))), phase:''}); // long low
+
+  bl._loopFrom = loopStart;
+  return bl;
+}
+
+// ── ERRATIC ───────────────────────────────────
+// Already random per edge by design — kept as-is, full random regeneration.
+function pErratic(lo,hi){
+  const mn=CFG.diff==='hard'?15:CFG.diff==='easy'?40:25;
+  const mx=CFG.diff==='hard'?75:CFG.diff==='easy'?130:100;
+  const bl=[];
+  const buildCount = 3;
+  for(let i=0;i<buildCount;i++){
+    const buildHi = lo + (hi-lo)*0.7;
+    bl.push({bpm:snap(rnd(lo,buildHi)),secs:Math.round(rnd(mn,mx)),phase:''});
+  }
+  const loopStart = bl.length;
+  const sustainCount = 6+Math.floor(Math.random()*3);
+  const sustainLo = lo + (hi-lo)*0.45;
+  for(let i=0;i<sustainCount;i++){
+    bl.push({bpm:snap(rnd(sustainLo,hi)),secs:Math.round(rnd(mn,mx)),phase:''});
+  }
+  bl._loopFrom = loopStart;
+  return bl;
+}
+
+// Flat-low pattern — used exclusively when the player presses ⚡ in sustain.
+// A single block held at the minimum BPM for a long duration so the player
+// gets actual recovery, not oscillation. Loops the same block indefinitely
+// until the next check-in or quick action moves them back up.
+function pFlatLow(bpm){
+  const bl = [{bpm: snap(bpm), secs: 60, phase: ''}];
+  bl._loopFrom = 0;
+  return bl;
+}
+
+// Returns a full block array for the given preset/adaptive settings.
+// lo/hi are always passed explicitly so adaptive modes use their adjusted range.
+function buildBlocks(preset,edgeNum,lo,hi){
+  // Safety clamp: lo must be < hi
+  lo=Math.max(10,lo); hi=Math.min(160,hi);
+  if(hi<=lo+5)hi=lo+20;
+  switch(preset){
+    case 'waves':    return pWaves(edgeNum,lo,hi);
+    case 'slowburn': return pSlowBurn(edgeNum,lo,hi);
+    case 'pulse':    return pPulse(edgeNum,lo,hi);
+    case 'erratic':  return pErratic(lo,hi);
+    default:         return pWaves(edgeNum,lo,hi);
+  }
+}
+
+// Returns ONLY the sustain loop portion of a chosen sub-pattern.
+// Used by adaptive check-in adaptations so the pattern's identity is preserved
+// throughout the session (Slow Burn keeps its slow character, Pulse keeps
+// bursting, Erratic keeps its randomness, Waves keeps oscillating).
+// edgeNum is passed so the per-edge variation (jitter/shuffle) still applies.
+//
+// For Adaptive: Sustain mode, applies two extra mechanics:
+//   1. Yellow streak: after 2+ consecutive yellow check-ins, durations of
+//      "low" blocks are shortened (less relief), bringing the player closer
+//      to the edge as a reward for being in the perfect zone.
+//   2. False drop: 25% chance to extend one low block significantly,
+//      lulling the player into expecting a long break before the high snaps
+//      back. (Adaptive Build does NOT get false drops — it always wants up.)
+function getSubPatternSustain(preset, edgeNum, lo, hi){
+  const full = buildBlocks(preset, edgeNum, lo, hi);
+  const loopFrom = full._loopFrom != null ? full._loopFrom : 0;
+  const sustainOnly = full.slice(loopFrom);
+  // The new array loops from index 0 (it's already just the sustain section)
+  sustainOnly._loopFrom = 0;
+
+  // Apply sustain-mode evil mechanics
+  if(CFG.preset === 'asustain' && sustainOnly.length > 0){
+    // Identify "low" blocks (below the median bpm in this sustain set)
+    const sortedBpms = sustainOnly.map(b=>b.bpm).slice().sort((a,b)=>a-b);
+    const median = sortedBpms[Math.floor(sortedBpms.length/2)];
+
+    // Yellow-streak band narrowing: shorten low blocks
+    const yStreak = (G.profile && G.profile.yellowStreak) || 0;
+    if(yStreak >= 2){
+      const shortenFactor = yStreak >= 3 ? 0.55 : 0.72;
+      sustainOnly.forEach(b=>{
+        if(b.bpm < median){
+          b.secs = Math.max(6, Math.round(b.secs * shortenFactor));
+        }
+      });
+    }
+
+    // False drop: 25% chance to pick one low block and extend it dramatically
+    if(Math.random() < 0.25){
+      const lowIndices = sustainOnly
+        .map((b,i)=>({b,i}))
+        .filter(({b})=>b.bpm < median)
+        .map(({i})=>i);
+      if(lowIndices.length > 0){
+        const idx = lowIndices[Math.floor(Math.random()*lowIndices.length)];
+        sustainOnly[idx].secs = Math.round(sustainOnly[idx].secs * (1.8 + Math.random()*0.6));
+      }
+    }
+  }
+
+  return sustainOnly;
+}
+
+// Main entry — resolves preset and adaptive ranges, then builds blocks.
+// sustainTarget: for adaptive modes after a check-in/tap, the BPM to stay near.
+//   Pass null/undefined for the initial session start (uses sub-pattern's full build).
+function getBlocks(edgeNum, sustainTarget){
+  const preset=CFG.preset;
+  if(preset==='abuild'){
+    // Fresh edge: full sub-pattern with build phase
+    return buildBlocks(CFG.sustainPat, edgeNum, G.adFloor, G.adCeiling);
+  }
+  if(preset==='asustain'){
+    if(sustainTarget!=null){
+      // After a check-in: use the chosen sub-pattern's SUSTAIN LOOP at the
+      // adjusted range. Preserves pattern identity (Pulse stays bursty, etc.)
+      // while applying sustain-mode evil mechanics (yellow streak narrowing,
+      // false drops) inside getSubPatternSustain.
+      return getSubPatternSustain(CFG.sustainPat, edgeNum, G.adFloor, G.adCeiling);
+    }else{
+      // Initial session start: use the adaptive floor/ceiling as set by beginEdge.
+      // For the first edge these are warm-up capped (beginEdge reduces ceiling to
+      // ~55% of profile ceiling so the pattern builds from a sensible low start).
+      return buildBlocks(CFG.sustainPat, edgeNum, G.adFloor, G.adCeiling);
+    }
+  }
+  return buildBlocks(preset,edgeNum,CFG.minBpm,CFG.maxBpm);
+}
+
+// ════════════════════════════════════════════
+// ADAPTIVE PROFILE
+// ════════════════════════════════════════════
+const PK='tme_profile_v3'; // bumped to avoid conflicts with old profile shape
+function loadProf(){
+  try{
+    const r=localStorage.getItem(PK);
+    const parsed = r ? JSON.parse(r) : null;
+    G.profile = (parsed && typeof parsed === 'object') ? parsed : {edgeBpm:null,sessions:0};
+  }catch(e){G.profile={edgeBpm:null,sessions:0};}
+
+  // Initialise new profile fields if missing (backwards compatible)
+  if(!G.profile.yellowBpm) G.profile.yellowBpm = null;
+  if(!G.profile.redBpm) G.profile.redBpm = null;
+  if(!G.profile.edgeZoneWidth) G.profile.edgeZoneWidth = null;
+  if(!G.profile.zapBehavior) G.profile.zapBehavior = {count:0, avgBpm:0};
+  if(!G.profile.avgTimeToFirstEdge) G.profile.avgTimeToFirstEdge = null;
+
+  // Initialise adaptive range from profile knowledge
+  if(G.profile.edgeBpm){
+    const spread=Math.max(20,(CFG.maxBpm-CFG.minBpm)*0.55);
+    G.adFloor=Math.max(CFG.minBpm,G.profile.edgeBpm-spread);
+    G.adCeiling=Math.min(CFG.maxBpm,G.profile.edgeBpm+8);
+  }else{
+    G.adFloor=CFG.minBpm;
+    G.adCeiling=CFG.maxBpm;
+  }
+
+  // If profile knows their yellow zone, seed the initial arousal and ceiling
+  // so the game doesn't have to rediscover from scratch every session.
+  if(G.profile.yellowBpm){
+    G.adCeiling = Math.min(CFG.maxBpm, Math.round(G.profile.yellowBpm * 0.90));
+    G.adFloor   = Math.max(CFG.minBpm, G.adCeiling - Math.round((CFG.maxBpm-CFG.minBpm)*0.45));
+    G.arousal   = 30; // start a little higher — the game already knows you
+  }
+}
+function saveProf(){
+  if(!G.profile || typeof G.profile !== 'object') return;
+  try{localStorage.setItem(PK,JSON.stringify(G.profile));}catch(e){}
+}
+
+// ════════════════════════════════════════════
+// AROUSAL MODEL
+// ════════════════════════════════════════════
+// G.arousal is a continuous 0-100 estimate of the player's proximity to orgasm.
+// 0  = completely cold
+// 20 = session just started, warming up
+// 50 = meaningfully aroused, mid-session
+// 70 = approaching the edge zone
+// 85 = close — sustain mode should be managing carefully here
+// 95 = very close — sustain should pre-emptively ease back
+// 100 = at the edge / orgasm threshold
+//
+// Updated every 5 seconds by arousalTick(). Also updated by explicit events
+// (check-in responses, ⚡ presses). Never shown to the player.
+
+const AROUSAL_TICK_MS = 5000;
+
+function startArousalEngine(){
+  stopArousalEngine();
+  const isAd = CFG.preset==='abuild' || CFG.preset==='asustain';
+  if(!isAd) return;
+  G.arousalTimer = setInterval(arousalTick, AROUSAL_TICK_MS);
+  // Sample BPM every 30s for average speed + sparkline in summary/share.
+  // Take one sample IMMEDIATELY too — setInterval's first fire is 30s away,
+  // so without this, any session shorter than 60s would have fewer than the
+  // 2 samples needed to generate a challenge link or a meaningful sparkline.
+  if(G.currentBpm > 0) G.bpmSamples.push(Math.round(G.currentBpm));
+  G.bpmSampleTimer = setInterval(()=>{
+    if(!G.timerDone && G.currentBpm > 0){
+      G.bpmSamples.push(Math.round(G.currentBpm));
+    }
+  }, 30000);
+}
+function stopArousalEngine(){
+  if(G.arousalTimer){clearInterval(G.arousalTimer);G.arousalTimer=null;}
+  if(G.bpmSampleTimer){clearInterval(G.bpmSampleTimer);G.bpmSampleTimer=null;}
+}
+
+// Called every 5 seconds. Drifts arousal based on current BPM relative to
+// the player's known edge speed and the general passage of time.
+function arousalTick(){
+  if(G.timerDone) return;
+  if(!G.profile) return;
+
+  const edgeBpm = G.profile.edgeBpm;
+  const bpm = G.currentBpm;
+
+  // Base rate: arousal rises slowly just from running the session (0.4 per tick = ~5/min)
+  let delta = 0.4;
+
+  if(edgeBpm && edgeBpm > 0){
+    // BPM proximity: how close is current BPM to known edge speed?
+    // At 0% of edge speed → no extra contribution
+    // At 80% of edge speed → +0.8/tick
+    // At 95% of edge speed → +2.2/tick  (getting close)
+    // At 100%+ of edge speed → +3.5/tick (right there)
+    const proximity = bpm / edgeBpm; // 0 to 1+
+    if(proximity > 0.5){
+      delta += (proximity - 0.5) * 6.2; // scales from 0 to +3.1 at 100% proximity
+    }
+    // Above edge speed: escalate faster
+    if(proximity > 1.0){
+      delta += (proximity - 1.0) * 8.0;
+    }
+  }else{
+    // No edge estimate yet — use position in adaptive range as proxy
+    const rangePct = G.adCeiling > G.adFloor
+      ? (bpm - G.adFloor) / (G.adCeiling - G.adFloor)
+      : 0.5;
+    delta += Math.max(0, rangePct - 0.4) * 3.5; // rises faster in upper 60% of range
+  }
+
+  // Natural recovery during low phases — when bpm is in the lower third of the
+  // current range. Uses a RELATIVE check so recovery still fires even when the
+  // whole range has shifted upward after multiple check-ins.
+  const lowerThird = G.adFloor + (G.adCeiling - G.adFloor) * 0.32;
+  if(bpm < lowerThird){
+    delta -= 1.2; // recovery — arousal slowly drops in genuine low phases
+  }
+
+  // Time since last ⚡: extended flat-low reduces arousal more aggressively
+  if(G.lastZapTime > 0){
+    const secsSinceZap = (Date.now() - G.lastZapTime) / 1000;
+    if(secsSinceZap < 120){ // first 2 mins after ⚡ — still recovering
+      delta -= 2.5; // strong downward pull during recovery period
+    }
+  }
+
+  G.arousal = Math.max(0, Math.min(100, G.arousal + delta));
+
+  // Sustain mode: autonomous adjustment based on arousal level
+  if(CFG.preset==='asustain'){
+    sustainArousalAdjust();
+  }
+}
+
+// Sustain-mode autonomous adjustment — acts without requiring player input.
+// Tracks arousal at all times but only triggers metronome changes when the
+// check-in overlay is NOT showing (G.ciOpen === false). This prevents the
+// pattern from shifting mid-check-in while the player is trying to answer.
+let _lastArousalAdjust = 0;
+function sustainArousalAdjust(){
+  const now = Date.now();
+  if(now - _lastArousalAdjust < 15000) return;
+
+  if(G.arousal > 94){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, snap(G.adCeiling * 0.90));
+    G.arousal = Math.min(G.arousal, 78);
+    // Only restart metronome if check-in is NOT open
+    if(!G.ciOpen){
+      startMetroSmooth(getBlocks(G.currentEdge, Math.min(G.adCeiling - 5, G.currentBpm)));
+    }
+
+  }else if(G.arousal > 88){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, snap(G.adCeiling * 0.94));
+    G.arousal = Math.min(G.arousal, 82);
+    // Ceiling adjustment only — no metro restart at this threshold
+
+  }else if(G.arousal > 82){
+    _lastArousalAdjust = now;
+    G.adCeiling = Math.max(G.adFloor + 12, G.adCeiling - 2);
+  }
+}
+
+// ── REPORT VELOCITY ────────────────────────────
+// Tracks the direction of travel across the last 3 check-ins.
+// Accelerating (green→yellow→red) is treated differently to stable (yellow×3).
+// Returns a signed velocity: positive = heading toward edge, negative = moving away
+function reportVelocity(){
+  const h = G.ciHistory;
+  if(h.length < 2) return 0;
+  // Assign scores: far=0, close=1, edge=2
+  const score = l => l==='far'?0 : l==='close'?1 : 2;
+  const scores = h.slice(-3).map(score);
+  if(scores.length === 1) return 0;
+  // Average change per step
+  let totalDelta = 0;
+  for(let i=1; i<scores.length; i++) totalDelta += scores[i] - scores[i-1];
+  return totalDelta / (scores.length - 1); // -1 to +1
+}
+
+// ── CHECK-IN: when player answers ─────────────
+// Records the answer in ciHistory, updates the arousal model,
+// and checks for the "zap-after-CI" pattern (CI said yellow but
+// ⚡ fired within 90s — means that yellow was really a near-red).
+function recordCIResponse(level, rawVal){
+  rawVal = (rawVal == null) ? (level==='far'?15 : level==='close'?50 : 82) : rawVal;
+
+  G.ciHistory.push(level);
+  if(G.ciHistory.length > 4) G.ciHistory.shift();
+
+  // Underreport detection: previous CI was close but ⚡ fired within 90s
+  if(G.lastZapTime > G.lastCITime && G.ciHistory.length >= 2){
+    const prevLevel = G.ciHistory[G.ciHistory.length - 2];
+    const secsBetween = (G.lastZapTime - G.lastCITime) / 1000;
+    if(prevLevel === 'close' && secsBetween < 90 && G.profile){
+      const zapBpm = G.profile._zapBpm || G.currentBpm;
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(zapBpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm * 0.7 + zapBpm * 0.3);
+      if(!G.profile.underreportCount) G.profile.underreportCount = 0;
+      G.profile.underreportCount++;
+    }
+  }
+
+  // Update arousal using raw value (0-100) for full precision.
+  // Thresholds match ciCardTap: >= 80 = edge, >= 38 = close, < 38 = far.
+  const vel = reportVelocity();
+  const arousalTarget = 20 + rawVal * 0.75 + vel * 8;
+
+  if(rawVal >= 80){
+    // Edge zone (Extremely close) — set to at least 84
+    G.arousal = Math.max(G.arousal, Math.max(84, arousalTarget));
+    G.arousal = Math.min(100, G.arousal);
+  }else if(rawVal >= 38){
+    // Close zone (Very close or Building) — blend toward target
+    G.arousal = G.arousal * 0.35 + Math.max(45, arousalTarget) * 0.65;
+    G.arousal = Math.max(40, Math.min(82, G.arousal));
+  }else{
+    // Far zone (Settling in or Calm) — pull arousal toward calm
+    G.arousal = G.arousal * 0.45 + Math.min(45, arousalTarget) * 0.55;
+    G.arousal = Math.max(10, Math.min(55, G.arousal));
+  }
+
+  // Update profile: record BPM at which each zone was reported
+  if(G.profile){
+    const bpm = G.currentBpm;
+    if(level==='close'){
+      if(!G.profile.yellowBpm) G.profile.yellowBpm = bpm;
+      else G.profile.yellowBpm = snap(G.profile.yellowBpm * 0.7 + bpm * 0.3);
+    }else if(level==='edge'){
+      if(!G.profile.redBpm) G.profile.redBpm = bpm;
+      else G.profile.redBpm = snap(G.profile.redBpm * 0.7 + bpm * 0.3);
+      if(G.profile.yellowBpm && G.profile.redBpm){
+        G.profile.edgeZoneWidth = Math.abs(G.profile.redBpm - G.profile.yellowBpm);
+      }
+    }
+    saveProf();
+  }
+}
+
+// Called when ⚡ is pressed — records the event for the model
+function recordZap(){
+  G.lastZapTime = Date.now();
+  G.arousal = 88; // ⚡ signals they were very close — set high before drop
+  if(G.profile){
+    G.profile._zapBpm = G.currentBpm; // store BPM at zap for underreport detection
+    if(!G.profile.zapBehavior) G.profile.zapBehavior = {count:0, avgBpm:0};
+    G.profile.zapBehavior.count++;
+    G.profile.zapBehavior.avgBpm = snap(
+      (G.profile.zapBehavior.avgBpm * (G.profile.zapBehavior.count-1) + G.currentBpm)
+      / G.profile.zapBehavior.count
+    );
+    saveProf();
+  }
+}
+
+// ── CHECK-IN CADENCE (per pattern) ────────────
+// Cadences tightened for adaptive mode dynamism and regularity.
+// When arousal is high (≥75) the next check-in fires sooner — the game
+// checks in more often when it suspects the player is getting close.
+function checkinCadence(){
+  const p = CFG.sustainPat;
+  if(p==='slowburn') return [80000, 110000, 70000, 100000];
+  if(p==='pulse')    return [40000,  60000, 35000,  55000];
+  if(p==='erratic')  return [50000,  75000, 45000,  70000];
+  return [55000, 80000, 50000, 75000]; // waves
+}
+
+// ── PATTERN-AWARE RESPONSE SIZE (build mode) ──
+function patternResponseSize(level){
+  const p = CFG.sustainPat;
+  let sizes;
+  if(p==='slowburn')    sizes = [8,  14];
+  else if(p==='pulse')   sizes = [16, 26];
+  else if(p==='erratic') sizes = [12, 20];
+  else                   sizes = [12, 20];
+  return level==='yellow' ? sizes[0] : sizes[1];
+}
+
+// ── CHECK-IN SCHEDULING ────────────────────────
+// ── TAP-BAR CHECK-IN ──────────────────────────
+// The bar is 340px tall. Position 0 = bottom (calm), 100 = top (edge).
+// Player taps anywhere; a thumb moves to that position; Confirm button appears.
+// Raw position (0-100) feeds into the arousal model with full precision.
+// Mapped to 'far'/'close'/'edge' for applyAdaptive backwards compatibility:
+//   0-33  → 'far'   (calm / not aroused)
+//   34-66 → 'close' (noticeably aroused)
+//   67-100 → 'edge' (close to edge)
+
+// ── 5-CARD CHECK-IN ────────────────────────────
+// One tap = immediate response. No confirm needed — cards are discrete.
+//
+// Card → rawVal → level:
+//   Extremely close  92 → 'edge'   (>= 80)
+//   Very close       72 → 'close'  (38-79)
+//   Building         50 → 'close'
+//   Settling in      28 → 'far'    (< 38)
+//   Calm             10 → 'far'
+
+function ciCardTap(rawVal){
+  const level = rawVal >= 80 ? 'edge' : rawVal >= 38 ? 'close' : 'far';
+  G.ciOpen = false;
+  document.getElementById('ciO').classList.remove('show');
+  G.lastCI = Date.now();
+  recordCIResponse(level, rawVal);
+  applyAdaptive(level, false);
+  schCI();
+}
+
+function showCI(){
+  const isSus = CFG.preset==='asustain';
+  G.lastCITime = Date.now();
+  G.ciOpen = true; // check-in open — suspend autonomous pattern changes
+  document.getElementById('ciMode').textContent = isSus ? 'ADAPTIVE SUSTAIN' : 'ADAPTIVE BUILD';
+  document.getElementById('ciSub').textContent  = 'Where are you right now?';
+  document.getElementById('ciO').classList.add('show');
+  playCheckinCue();
+}
+
+// ── CHECK-IN SCHEDULING ────────────────────────
+function schCI(){
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  const [fMin, fMax, sMin, sMax] = checkinCadence();
+  let delay = G.lastCI===0
+    ? snap(rnd(fMin, fMax))
+    : snap(rnd(sMin, sMax));
+  if(G.arousal >= 80) delay = Math.round(delay * 0.75);
+  else if(G.arousal >= 65) delay = Math.round(delay * 0.88);
+  G.ciTimer = setTimeout(showCI, delay);
+}
+
+
+// ── "STOP — I'M GOING TO EDGE" — SUSTAIN MODE ONLY ──────────────
+function playerClose(){
+  if(CFG.preset!=='asustain') return;
+  resAC();
+  G.ciOpen = false;
+  recordZap();
+  document.getElementById('ciO').classList.remove('show');
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  applyAdaptive('edge',true);
+  schCI();
+}
+
+// ── CORE ADAPTIVE LOGIC ────────────────────────
+// BUILD goal: get player to their edge.
+//   - green (far off) → push ceiling up hard, rebuild
+//   - yellow (close) → nudge ceiling up, rebuild
+//   - red (right there) → hold/nudge up slightly — they're nearly there
+//
+// SUSTAIN goal: keep player at the edge without going over.
+//   - green (far off) → push speed up
+//   - yellow (close) → tiny nudge up, maintain tension
+//   - red check-in → small step back
+//   - fromClose (⚡) → drop to minimum immediately
+function applyAdaptive(level,fromClose){
+  const bpm=G.currentBpm;
+  const isSus=CFG.preset==='asustain';
+  if(!G.profile)G.profile={edgeBpm:null,sessions:0};
+
+  if(isSus){
+    // ── SUSTAIN ──────────────────────────────────
+    // Goal: keep the player perpetually just UNDER the edge — aroused, needy,
+    // close but never actually reaching orgasm. The arousal model helps the
+    // game be conservative when the estimate is high and more generous when low.
+    if(!G.profile.sustainReds) G.profile.sustainReds=0;
+    if(!G.profile.yellowStreak) G.profile.yellowStreak=0;
+    if(!G.profile.zapCount) G.profile.zapCount=0;
+
+    const vel = reportVelocity(); // positive = heading toward edge
+    let sustainTarget;
+
+    if(fromClose){
+      // ⚡ emergency drop — always full mercy, flat minimum
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak=0;
+      G.profile.lastWasEmergency=true;
+      G.profile.zapCount++;
+      sustainTarget = CFG.minBpm;
+      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
+      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
+      G.adCeiling = Math.min(CFG.maxBpm, CFG.minBpm + (CFG.maxBpm-CFG.minBpm)*0.55);
+      G.adFloor   = CFG.minBpm;
+
+    }else if(level==='edge'){
+      // Red check-in — they're too close. Step back.
+      // How far back depends on arousal level and whether they're accelerating.
+      G.profile.lastWasEmergency=false;
+      G.profile.yellowStreak=0;
+      G.profile.sustainReds++;
+      if(!G.profile.edgeBpm) G.profile.edgeBpm=snap(bpm);
+      else G.profile.edgeBpm=snap(G.profile.edgeBpm*0.55+bpm*0.45);
+      // Bigger drop if arousal is very high or if they've had multiple reds
+      let dropFactor = 0.93;
+      if(G.arousal > 88) dropFactor = 0.85;         // genuinely close — bigger drop
+      else if(G.profile.sustainReds >= 3) dropFactor = 0.88; // persistent reds
+      else if(vel >= 1) dropFactor = 0.89;           // accelerating toward edge
+      sustainTarget = Math.max(CFG.minBpm, snap(bpm * dropFactor));
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
+
+    }else if(level==='close'){
+      // Yellow — perfect zone. Stay here but nudge up gently.
+      // If arousal estimate says they're already close (>75), be more
+      // conservative — the tiny nudge up stays tiny. If arousal is lower,
+      // we can afford a slightly bigger nudge.
+      G.profile.lastWasEmergency=false;
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak++;
+      // Arousal-modulated nudge: high arousal → smaller push; low arousal → slightly larger
+      const maxNudge = G.arousal > 75 ? 3 : G.arousal > 60 ? 5 : 7;
+      const wobble = snap(Math.random() * maxNudge);
+      sustainTarget = Math.min(CFG.maxBpm, snap(bpm + wobble));
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 12);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 8);
+
+    }else{
+      // Green — too far off. Push up.
+      // Use edge zone width from profile to calibrate how big to push.
+      // If we know their yellow-to-red gap is only 6 bpm, a 16-bpm push
+      // would overshoot. If their zone is 20 bpm wide, we have more room.
+      G.profile.sustainReds=0;
+      G.profile.yellowStreak=0;
+      G.profile.lastWasEmergency=false;
+
+      let pushAmount;
+      if(G.profile.edgeZoneWidth && G.profile.yellowBpm){
+        // We know their zone — push to 85% of the way to their yellow BPM
+        const target85 = snap(G.profile.yellowBpm * 0.85);
+        pushAmount = Math.max(bpm + 10, target85);
+      }else if(G.profile.edgeBpm){
+        // We know edge speed — push to ~80% of it
+        const recoveryFactor = G.profile.zapCount>=3 ? 1.00
+                             : G.profile.zapCount>=2 ? 0.95
+                             : 0.88;
+        pushAmount = G.profile.lastWasEmergency
+          ? Math.min(CFG.maxBpm, snap(G.profile.edgeBpm * recoveryFactor))
+          : Math.min(CFG.maxBpm, snap(bpm + 16));
+      }else{
+        pushAmount = Math.min(CFG.maxBpm, snap(bpm + 16));
+      }
+      sustainTarget = Math.min(CFG.maxBpm, pushAmount);
+      G.adCeiling = Math.min(CFG.maxBpm, sustainTarget + 14);
+      G.adFloor   = Math.max(CFG.minBpm, sustainTarget - 10);
+    }
+
+    G.adFloor = Math.min(G.adFloor, G.adCeiling - 10);
+    G.adFloor = Math.max(CFG.minBpm, G.adFloor);
+
+    if(fromClose){
+      startMetroSmooth(pFlatLow(CFG.minBpm));
+    }else{
+      startMetroSmooth(getBlocks(G.currentEdge, sustainTarget));
+    }
+
+  }else{
+    // ── BUILD ─────────────────────────────────────
+    // Goal: guide the player toward their edge — not instantly, but deliberately.
+    // The arousal model helps size responses: when the player is already quite
+    // aroused (estimate > 65), green responses can be larger because the game
+    // knows they're genuinely climbing. When arousal is low, smaller jumps.
+    // Build mode almost never backs off autonomously — only on red/⚡.
+    let buildCeiling;
+    const vel = reportVelocity();
+
+    if(level==='edge'){
+      // Player is extremely close — hold them at their edge speed so they tip over.
+      // IMPORTANT: use edgeBpm (or upper ceiling estimate) as hold target, NOT
+      // the current metronome bpm — which could be the low phase of a pattern.
+      // Holding at 38 bpm recovery when they're "extremely close" would feel wrong.
+      const holdBpm = G.profile.edgeBpm
+        ? snap(G.profile.edgeBpm * 0.96)
+        : snap(Math.max(G.currentBpm, G.adCeiling * 0.88));
+      G.adCeiling = Math.min(CFG.maxBpm, holdBpm + 8);
+      G.adFloor   = Math.max(CFG.minBpm, holdBpm - 12);
+      G.adFloor   = Math.min(G.adFloor, G.adCeiling - 10);
+      if(!G.profile.edgeBpm) G.profile.edgeBpm = snap(holdBpm);
+      else G.profile.edgeBpm = snap(G.profile.edgeBpm*0.6 + holdBpm*0.4);
+      saveProf();
+      // Tight oscillation around the hold speed — not a full pattern
+      startMetroSmooth([
+        {bpm: holdBpm,           secs: 28, phase:''},
+        {bpm: snap(holdBpm-3),   secs: 8,  phase:''},
+        {bpm: holdBpm,           secs: 28, phase:''},
+        {bpm: snap(holdBpm+2),   secs: 22, phase:''},
+      ]);
+      return;
+
+    }else if(level==='close'){
+      // Yellow — calibrate jump size by pattern AND arousal level.
+      // Higher arousal means larger response — the game knows they're genuinely
+      // climbing and can afford to push the ceiling more aggressively.
+      const baseJump = patternResponseSize('yellow');
+      const arousalBonus = G.arousal > 65 ? Math.round((G.arousal - 65) * 0.3) : 0;
+      const effectiveJump = baseJump + arousalBonus;
+      if(G.profile.edgeBpm){
+        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + effectiveJump, snap(G.profile.edgeBpm * 0.95)));
+      }else{
+        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + effectiveJump + 2));
+      }
+
+    }else{
+      // Green — push hard. If arousal is already elevated, jump even harder.
+      const baseJump = patternResponseSize('green');
+      const arousalBonus = G.arousal > 55 ? Math.round((G.arousal - 55) * 0.35) : 0;
+      const velBonus = vel > 0 ? Math.round(vel * 6) : 0; // accelerating → bigger jump
+      const effectiveJump = baseJump + arousalBonus + velBonus;
+      if(G.profile.edgeBpm){
+        buildCeiling = Math.min(CFG.maxBpm, Math.max(bpm + effectiveJump, snap(G.profile.edgeBpm * 0.90)));
+      }else{
+        buildCeiling = Math.min(CFG.maxBpm, snap(bpm + effectiveJump + 2));
+      }
+    }
+
+    const jumpSize = buildCeiling - snap(bpm);
+    G.adCeiling = Math.min(CFG.maxBpm, buildCeiling);
+    G.adFloor = Math.max(CFG.minBpm, snap(bpm));
+    if(G.adCeiling - G.adFloor < 8) G.adCeiling = Math.min(CFG.maxBpm, G.adFloor + 8);
+
+    saveProf();
+
+    if(jumpSize < 14){
+      // Small jump: hold near current with light wobble
+      const target = snap(bpm + jumpSize * 0.5);
+      startMetroSmooth([
+        {bpm: target,                              secs: 28, phase:''},
+        {bpm: snap(target - 3),                    secs: 10, phase:''},
+        {bpm: Math.min(CFG.maxBpm, target + 2),    secs: 26, phase:''},
+        {bpm: snap(target - 2),                    secs: 8,  phase:''},
+        {bpm: Math.min(CFG.maxBpm, snap(buildCeiling)), secs: 32, phase:''},
+        {bpm: snap(buildCeiling - 4),              secs: 12, phase:''},
+      ]);
+    }else{
+      startMetroSmooth(buildBlocks(CFG.sustainPat, G.currentEdge, G.adFloor, G.adCeiling));
+    }
+    return;
+  }
+  saveProf();
+}
+
+// ════════════════════════════════════════════
+// SUSTAIN TIMER
+// ════════════════════════════════════════════
+function startSustainTimer(){
+  G.sustainTotal=CFG.sustainMins*60;
+  G.sustainRemaining=G.sustainTotal;
+  document.getElementById('stWrap').style.display='block';
+  updST();
+  G.sustainTimer=setInterval(()=>{
+    G.sustainRemaining=Math.max(0,G.sustainRemaining-1);
+    updST();
+    if(G.sustainRemaining<=0){
+      clearInterval(G.sustainTimer);G.sustainTimer=null;
+      stopMetro();
+      stopArousalEngine();
+      if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+      G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
+      showSummary();
+    }
+  },1000);
+}
+function updST(){
+  const pct=Math.max(0,(G.sustainRemaining/G.sustainTotal)*100);
+  document.getElementById('stFill').style.width=pct+'%';
+  const m=Math.floor(G.sustainRemaining/60),s=G.sustainRemaining%60;
+  document.getElementById('stTime').textContent=m+':'+(s<10?'0':'')+s;
+}
+
+// ════════════════════════════════════════════
+// SESSION FLOW
+// ════════════════════════════════════════════
+function startSession(){
+  CFG.minBpm=+document.getElementById('mnS').value;
+  CFG.maxBpm=+document.getElementById('mxS').value;
+  CFG.targetEdges=+document.getElementById('eC').textContent;
+  CFG.breakSecs=+document.getElementById('bS').textContent;
+  CFG.sustainMins=+document.getElementById('sMins').textContent;
+  G.edges=[];G.edgeStarts=[];G.currentEdge=0;
+  G.sessionStart=Date.now();G.lastCI=0;
+  G.adFloor=CFG.minBpm;G.adCeiling=CFG.maxBpm;
+  G.profile=null;
+  G.peakBpmSeen=0; // track highest BPM reached during session (needed for sustain summary)
+  // Arousal model — fresh each session
+  G.arousal = 20;
+  G.lastZapTime = 0;
+  G.lastCITime = 0;
+  G.ciHistory = [];
+  G.ciOpen = false;
+  G.bpmSamples = [];
+  G.recordedBlocks = [];
+  G.challengeMode = false; // a normal session is never a challenge replay
+  _lastArousalAdjust = 0; // reset autonomous adjustment throttle
+
+  const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
+  const isSus=CFG.preset==='asustain';
+
+  // Badge
+  const badge=document.getElementById('abadge');
+  badge.style.display=isAd?'inline-flex':'none';
+  badge.textContent=isSus?'⬡ ADAPTIVE SUSTAIN':'⬡ ADAPTIVE BUILD';
+
+  // Live reminder of the mode's actual goal — sustain's goal is easy to
+  // misread as "reach the edge" when really it's the opposite: stay just
+  // under it, deliciously close, the whole way through.
+  const reminder = document.getElementById('modeReminder');
+  if(isSus){
+    reminder.textContent = 'Stay just under the edge — deliciously close, never over';
+    reminder.style.display = '';
+  }else{
+    reminder.style.display = 'none';
+  }
+
+  // ⚡ "I'm close" button: sustain only. Build uses "I've Edged" instead.
+  document.getElementById('closeBtn').style.display=isSus?'':'none';
+  document.getElementById('edgedBtn').style.display=isSus?'none':'';
+  document.getElementById('stWrap').style.display='none';
+  // A normal session ALWAYS uses the normal button group — this restores it
+  // in case a previous challenge attempt left the challenge buttons showing.
+  document.getElementById('normalPlayBtns').style.display='flex';
+  document.getElementById('challengePlayBtns').style.display='none';
+
+  if(isAd)loadProf();
+  buildPips();
+
+  // Show play screen BEFORE starting metronome
+  showScreen('scrPlay');
+  beginEdge();
+  if(isSus)startSustainTimer();
+  // Arousal engine runs for both adaptive modes
+  if(isAd) startArousalEngine();
+}
+
+function buildPips(){
+  const r=document.getElementById('pipR');r.innerHTML='';
+  if(CFG.openSession||CFG.preset==='asustain')return;
+  for(let i=0;i<CFG.targetEdges;i++){
+    const p=document.createElement('div');
+    p.className='ep';p.id='p'+i;r.appendChild(p);
+  }
+}
+function setPip(i,s){
+  const p=document.getElementById('p'+i);
+  if(p){p.classList.remove('done','over');if(s)p.classList.add(s);}
+}
+
+// beginEdge: starts the metronome and schedules check-in.
+// Does NOT change screen — caller handles screen transitions.
+function beginEdge(){
+  G.currentEdge++;
+  G.edgeStarts.push(Date.now());
+  resAC();
+
+  const isAd = CFG.preset==='abuild' || CFG.preset==='asustain';
+
+  if(isAd && G.currentEdge === 1){
+    // WARM-UP: for the very first edge of any adaptive session, cap the
+    // initial ceiling so the pattern always starts with a proper build-up
+    // even when the profile knows they edge at a high BPM. Starting straight
+    // at someone's known edge speed feels abrupt.
+    //
+    // Cap: ceiling starts at no more than 55% of the way from minBpm to the
+    // profile-informed ceiling. After the first check-in the player can push
+    // it higher. Floor always starts at minBpm for the first edge.
+    const profileCeiling = G.adCeiling; // save for later
+    G.adFloor = CFG.minBpm;
+    G.adCeiling = Math.round(CFG.minBpm + (profileCeiling - CFG.minBpm) * 0.55);
+    // Ensure the ceiling is at least minBpm+20 even on tiny ranges
+    G.adCeiling = Math.max(G.adCeiling, CFG.minBpm + 20);
+    G.adCeiling = Math.min(CFG.maxBpm, G.adCeiling);
+  }
+
+  // For Adaptive Build edge 2+: reset floor so each new edge has a build-up
+  // but preserve the ceiling earned from previous edge check-ins.
+  if(CFG.preset==='abuild' && G.currentEdge > 1){
+    G.adFloor = CFG.minBpm;
+    G.adCeiling = Math.min(CFG.maxBpm, Math.max(G.adFloor + 25, G.adCeiling));
+  }
+
+  startMetro(getBlocks(G.currentEdge));
+  if(isAd){
+    G.lastCI=0;
+    schCI();
+    startArousalEngine();
+  }
+}
+
+function recordEdge(over){
+  const dur=Math.round((Date.now()-G.edgeStarts[G.currentEdge-1])/1000);
+  G.edges.push({bpm:Math.round(G.currentBpm),over,duration:dur});
+  setPip(G.currentEdge-1,over?'over':'done');
+
+  // Track time-to-first-edge in build mode (helps game learn session pacing)
+  if(!over && G.currentEdge===1 && CFG.preset==='abuild' && G.profile){
+    const sessionSecs = Math.round((Date.now() - G.sessionStart) / 1000);
+    if(!G.profile.avgTimeToFirstEdge) G.profile.avgTimeToFirstEdge = sessionSecs;
+    else G.profile.avgTimeToFirstEdge = Math.round(
+      G.profile.avgTimeToFirstEdge * 0.7 + sessionSecs * 0.3
+    );
+    saveProf();
+  }
+}
+
+function afterEdge(){
+  stopMetro();
+  stopArousalEngine(); // pause during break — restarts when beginEdge fires
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
+
+  // Check if target reached
+  if(!CFG.openSession&&G.currentEdge>=CFG.targetEdges){
+    showSummary();
+    return;
+  }
+
+  if(CFG.autoStart){
+    // Auto break: start countdown then auto-advance
+    startBreak();
+  }else{
+    // Manual: show break screen with dash, user presses button
+    document.getElementById('breakLbl').textContent='BREAK';
+    document.getElementById('brkN').textContent='—';
+    document.getElementById('skipBtn').textContent='Next Edge';
+    showScreen('scrBreak');
+  }
+}
+
+function playerEdged(){resAC();recordEdge(false);afterEdge();}
+function wentOver(){
+  resAC();
+  recordEdge(true);
+  // Going over ends the session immediately
+  stopMetro();
+  stopArousalEngine();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
+  showSummary();
+}
+
+function startBreak(){
+  // Clear any existing timer
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  document.getElementById('breakLbl').textContent='NEXT EDGE IN';
+  document.getElementById('skipBtn').textContent='Skip — Next Edge Now';
+  // Show break screen
+  showScreen('scrBreak');
+  G.breakRemaining=Math.max(1,CFG.breakSecs);
+
+  function tick(){
+    // Decrement first, then display — so countdown goes 30→29→...→1→fires (never shows 0)
+    G.breakRemaining--;
+    if(G.breakRemaining<=0){
+      document.getElementById('brkN').textContent='0';
+      clearInterval(G.breakTimer);
+      G.breakTimer=null;
+      startNextEdge();
+      return;
+    }
+    document.getElementById('brkN').textContent=G.breakRemaining;
+  }
+  // Show initial value before first tick
+  document.getElementById('brkN').textContent=G.breakRemaining;
+  G.breakTimer=setInterval(tick,1000);
+}
+
+// startNextEdge: transitions to play screen and starts the next edge.
+// Guards against double-firing from rapid taps.
+function startNextEdge(){
+  // If we're already on the play screen, ignore — a metronome is already running
+  if(document.getElementById('scrPlay').classList.contains('active')) return;
+  // Clear break timer if still running (e.g. user pressed Skip)
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  // Show play screen BEFORE starting metronome
+  showScreen('scrPlay');
+  beginEdge();
+}
+
+function endSession(){
+  stopMetro();
+  stopArousalEngine();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
+  showSummary();
+}
+
+// ════════════════════════════════════════════
+// SUMMARY HELPERS
+// ════════════════════════════════════════════
+
+// Generate a Unicode sparkline from BPM samples.
+// Maps each sample to one of 8 block chars based on its position in the range.
+// Returns a string like "▁▂▄▅▇█▆▄▂▁" suitable for Discord and plain text.
+function makeSpark(samples, lo, hi){
+  if(!samples || samples.length < 2) return '';
+  const bars = '▁▂▃▄▅▆▇█';
+  const range = hi - lo || 1;
+  return samples.map(v => {
+    const pct = Math.max(0, Math.min(1, (v - lo) / range));
+    return bars[Math.round(pct * (bars.length - 1))];
+  }).join('');
+}
+
+// Average of an array, rounded.
+function avgArr(arr){
+  if(!arr || arr.length === 0) return 0;
+  return Math.round(arr.reduce((a,b)=>a+b,0) / arr.length);
+}
+
+// ════════════════════════════════════════════
+// CHALLENGE MODE — encoding, decoding, playback
+// ════════════════════════════════════════════
+// A challenge captures the EXACT sequence of blocks (bpm+duration) that
+// played during a live Adaptive Sustain session, plus a coarser 30s-sample
+// array used to render a shareable shape graph. Encoded as a compact
+// base36 delimited string carried entirely in the URL — no backend needed.
+//
+// Format: "1.<spCode>.<minBpm>.<maxBpm>.<peak>.<outcome>~<blocks>~<samples>"
+//   blocks:  "bpm_secs,bpm_secs,..."  (each value base36)
+//   samples: "bpm,bpm,..."            (each value base36)
+//   outcome: 's' = original survived, 'o' = original went over
+
+function b36(n){ return Math.max(1, Math.round(n)).toString(36); }
+function fromB36(s){ return parseInt(s, 36); }
+
+const CH_SP_CODE = {waves:'w', slowburn:'s', pulse:'p', erratic:'e'};
+const CH_SP_NAME = {w:'waves', s:'slowburn', p:'pulse', e:'erratic'};
+
+// Bucket a sample array down to at most maxLen entries by averaging groups.
+// Used to keep shareable graphs a sensible width regardless of session length.
+function bucketDown(samples, maxLen){
+  if(!samples || samples.length === 0) return [];
+  if(samples.length <= maxLen) return samples.slice();
+  const out = [];
+  const groupSize = samples.length / maxLen;
+  for(let i=0; i<maxLen; i++){
+    const start = Math.floor(i*groupSize), end = Math.max(start+1, Math.floor((i+1)*groupSize));
+    out.push(avgArr(samples.slice(start, end)));
+  }
+  return out;
+}
+
+// Returns the current page's own URL with any existing query/hash stripped.
+// The challenge link needs to actually be openable from wherever it was
+// generated — a local file during testing, or the real deployed site once
+// live — so it's built from window.location rather than a hardcoded URL.
+function getBaseUrl(){
+  try{
+    const u = new URL(window.location.href);
+    u.search = '';
+    u.hash = '';
+    return u.toString();
+  }catch(e){
+    return window.location.href.split('?')[0].split('#')[0];
+  }
+}
+
+// Build the challenge URL + payload from the just-completed live session.
+// Returns null if there isn't enough data to make a meaningful challenge.
+function buildChallengeUrl(){
+  if(CFG.preset !== 'asustain') return null;
+  // Only the block sequence is required for playback — the sample array is
+  // only used for the shareable shape graph and degrades gracefully (shows
+  // a dash) if there's too little data for a meaningful sparkline.
+  if(G.recordedBlocks.length < 2) return null;
+
+  const outcome = G.edges.some(e => e.over) ? 'o' : 's';
+  const header = ['1', CH_SP_CODE[CFG.sustainPat]||'w', b36(CFG.minBpm), b36(CFG.maxBpm),
+    b36(G.peakBpmSeen), outcome].join('.');
+  const blocksStr = G.recordedBlocks.map(b => b36(b.bpm)+'_'+b36(b.secs)).join(',');
+  const samplesStr = G.bpmSamples.map(v => b36(v)).join(',');
+  const encoded = encodeURIComponent(header+'~'+blocksStr+'~'+samplesStr);
+  return getBaseUrl()+'?challenge='+encoded;
+}
+
+// Parse a challenge query-string value. Returns the decoded payload or
+// null if the data is missing/malformed (caller falls back gracefully).
+function decodeChallengeParam(raw){
+  try{
+    const decoded = decodeURIComponent(raw);
+    const parts = decoded.split('~');
+    if(parts.length !== 3) return null;
+    const [header, blocksStr, samplesStr] = parts;
+    const h = header.split('.');
+    if(h.length !== 6 || h[0] !== '1') return null;
+    const sp = CH_SP_NAME[h[1]];
+    if(!sp) return null;
+    const mn = fromB36(h[2]), mx = fromB36(h[3]), peak = fromB36(h[4]), outcome = h[5];
+    if(!(mn>0) || !(mx>mn) || !(peak>0) || (outcome!=='s' && outcome!=='o')) return null;
+
+    const blocks = blocksStr.split(',').map(s=>{
+      const parts2 = s.split('_');
+      if(parts2.length !== 2) throw new Error('bad block');
+      const bpm = fromB36(parts2[0]), secs = fromB36(parts2[1]);
+      if(!(bpm>0) || !(secs>0)) throw new Error('bad block value');
+      return {bpm, secs};
+    });
+    if(blocks.length < 1) return null;
+
+    const samples = samplesStr.split(',').map(fromB36).filter(v=>v>0);
+
+    return {sp, mn, mx, peak, outcome, blocks, samples};
+  }catch(e){
+    return null; // malformed challenge data — caller falls back to normal welcome
+  }
+}
+
+// ── CHALLENGE PLAYBACK ─────────────────────────
+// Starts the fixed-sequence replay. No check-ins, no ⚡, no arousal engine —
+// this is a deterministic playback of someone else's recorded ride.
+function challengeAccept(){
+  const data = G.challengeData;
+  if(!data) return;
+  resAC();
+
+  G.challengeMode = true;
+  CFG.preset = 'asustain';       // keeps shared UI-visibility logic consistent
+  CFG.sustainPat = data.sp;
+  CFG.minBpm = data.mn;
+  CFG.maxBpm = data.mx;
+
+  G.edges=[]; G.edgeStarts=[]; G.currentEdge=0;
+  G.peakBpmSeen=0;
+  G.sessionStart=Date.now();
+
+  const blocks = data.blocks.map(b => ({bpm:b.bpm, secs:b.secs, phase:''}));
+  G.challengeTotal = blocks.reduce((sum,b)=>sum+b.secs, 0);
+  G.challengeElapsed = 0;
+  G.challengeStartTime = Date.now();
+
+  // UI: swap to challenge-specific button set, show CHALLENGE badge
+  const badge=document.getElementById('abadge');
+  badge.style.display='inline-flex';
+  badge.textContent='⬡ CHALLENGE';
+  const reminder = document.getElementById('modeReminder');
+  reminder.textContent = 'Stay under the edge for the whole ride — or admit it if you can\'t';
+  reminder.style.display = '';
+  document.getElementById('normalPlayBtns').style.display='none';
+  document.getElementById('challengePlayBtns').style.display='flex';
+  document.getElementById('stWrap').style.display='block';
+  buildPips();
+
+  showScreen('scrPlay');
+
+  G.noLoop = true;
+  G.onSequenceComplete = challengeSurvived;
+  startMetro(blocks);
+
+  if(G.challengeUITimer){clearInterval(G.challengeUITimer);G.challengeUITimer=null;}
+  G.challengeUITimer = setInterval(updChallengeProgress, 1000);
+  updChallengeProgress();
+}
+
+// UI-only progress ticker — purely cosmetic, does not control session end.
+// The actual "survived" signal comes from the audio scheduler completing
+// (onSequenceComplete), so this can never drift out of sync in a way that
+// ends the session early or late.
+function updChallengeProgress(){
+  G.challengeElapsed = Math.round((Date.now()-G.challengeStartTime)/1000);
+  const pct = Math.max(0, Math.min(100, (G.challengeElapsed/Math.max(1,G.challengeTotal))*100));
+  const fill=document.getElementById('stFill');
+  if(fill) fill.style.width=pct+'%';
+  const remaining = Math.max(0, G.challengeTotal - G.challengeElapsed);
+  const m=Math.floor(remaining/60), s=remaining%60;
+  const t=document.getElementById('stTime');
+  if(t) t.textContent = m+':'+(s<10?'0':'')+s;
+}
+
+function stopChallengeTimers(){
+  if(G.challengeUITimer){clearInterval(G.challengeUITimer);G.challengeUITimer=null;}
+}
+
+function challengeWentOver(){
+  resAC();
+  const elapsed = Math.round((Date.now()-G.challengeStartTime)/1000);
+  stopMetro();
+  stopChallengeTimers();
+  showChallengeComparison('over', elapsed);
+}
+function challengeQuit(){
+  resAC();
+  const elapsed = Math.round((Date.now()-G.challengeStartTime)/1000);
+  stopMetro();
+  stopChallengeTimers();
+  showChallengeComparison('quit', elapsed);
+}
+function challengeSurvived(){
+  // Called by the scheduler when the fixed sequence finishes playing in full.
+  const elapsed = Math.round((Date.now()-G.challengeStartTime)/1000);
+  stopMetro();
+  stopChallengeTimers();
+  showChallengeComparison('survived', elapsed);
+}
+
+// ── CHALLENGE COMPARISON ───────────────────────
+function outcomeLabel(code){
+  if(code==='s'||code==='survived') return 'Held the edge the whole way — never tipped';
+  if(code==='o'||code==='over') return 'Went over the edge';
+  if(code==='quit') return 'Tapped out';
+  return code;
+}
+
+// Determines who came out ahead. 'challenger' = challenger held on at least
+// as well as the original did; 'original' = the original held on better;
+// 'tie' = both held the edge for the complete ride.
+function determineResult(originalOutcome, challengerOutcome, challengerElapsed, originalTotal){
+  const origSurvived = originalOutcome === 's';
+  const chalSurvived = challengerOutcome === 'survived';
+
+  if(origSurvived && chalSurvived) return 'tie';
+  if(origSurvived && !chalSurvived) return 'original';
+  if(!origSurvived && chalSurvived) return 'challenger';
+  // Neither reached the true end of the sequence. The original's own total
+  // IS the point they tipped at, so if the challenger didn't reach that same
+  // point, they held on for less time than the original did.
+  const reachedEnd = challengerElapsed >= originalTotal - 2;
+  return reachedEnd ? 'tie' : 'original';
+}
+
+function resultHeadline(result){
+  if(result==='challenger') return '🏆 CHALLENGER WON';
+  if(result==='original')   return '💔 CHALLENGER LOST';
+  return '🤝 TIE — BOTH HELD THE EDGE';
+}
+
+function comparisonNarrative(originalOutcome, challengerOutcome, challengerElapsed, originalTotal){
+  const reachedEnd = challengerElapsed >= originalTotal - 2;
+  if(originalOutcome==='s' && challengerOutcome==='survived'){
+    return "You both held right at the edge the whole way through, without tipping.";
+  }
+  if(originalOutcome==='s' && challengerOutcome!=='survived'){
+    return "They held the edge for the whole ride without tipping. You didn't quite get there this time.";
+  }
+  if(originalOutcome==='o' && challengerOutcome==='survived'){
+    return "They tipped before the end — you held it further than they did.";
+  }
+  // Neither reached the end
+  if(reachedEnd){
+    return "You matched exactly how far they got.";
+  }
+  return "They lasted longer than you did this time.";
+}
+
+function showChallengeComparison(challengerOutcome, elapsedSecs){
+  const data = G.challengeData;
+  const totalSecs = G.challengeTotal;
+  const m1=Math.floor(totalSecs/60), s1=totalSecs%60;
+  const totalStr = m1>0?`${m1}m ${s1}s`:`${s1}s`;
+  const m2=Math.floor(elapsedSecs/60), s2=elapsedSecs%60;
+  const elapsedStr = m2>0?`${m2}m ${s2}s`:`${s2}s`;
+
+  const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[data.sp]||'';
+
+  // Build the two-row graph. Since a challenge is a deterministic replay of
+  // the exact same sequence, the challenger's shape up to wherever they
+  // stopped is BY CONSTRUCTION identical to that same prefix of the
+  // original's shape — so it's a true speed graph, not a flat progress bar.
+  // A single colored marker at the end shows the outcome.
+  const bucketed = bucketDown(data.samples, 24);
+  const shapeSpark = makeSpark(bucketed, data.mn, data.mx);
+  const N = bucketed.length;
+  const bucketSecs = totalSecs / N;
+  const reachedBuckets = Math.max(0, Math.min(N, Math.round(elapsedSecs / bucketSecs)));
+  const challengerShape = shapeSpark.slice(0, reachedBuckets);
+  const outcomeMarker = challengerOutcome==='survived' ? '🟢'
+                       : challengerOutcome==='over'     ? '🔴'
+                       : '🟡'; // tapped out
+  const challengerRow = (challengerShape ? challengerShape+' ' : '') + outcomeMarker;
+
+  const originalOutcomeLabel = outcomeLabel(data.outcome);
+  const challengerOutcomeLabel = outcomeLabel(challengerOutcome);
+  const narrative = comparisonNarrative(data.outcome, challengerOutcome, elapsedSecs, totalSecs);
+  const result = determineResult(data.outcome, challengerOutcome, elapsedSecs, totalSecs);
+  const headline = resultHeadline(result);
+
+  // In-app display: "You"/"Them" reads naturally here since it's addressed
+  // directly to whoever is looking at their own screen right now.
+  let html = `<div class="card-title" style="text-align:center;font-size:.95rem;color:${result==='challenger'?'var(--green)':result==='original'?'var(--red)':'var(--gold)'};margin-bottom:12px;">${headline}</div>`;
+  html += `<div class="reveal-line"><span class="l">Them</span><span class="v">${originalOutcomeLabel}</span></div>`;
+  html += `<div class="reveal-line"><span class="l">You</span><span class="v">${challengerOutcomeLabel}</span></div>`;
+  html += `<div class="reveal-line"><span class="l">Their ride lasted</span><span class="v">${totalStr}</span></div>`;
+  html += `<div class="reveal-line"><span class="l">You lasted</span><span class="v">${elapsedStr}</span></div>`;
+  document.getElementById('compStats').innerHTML = html;
+
+  document.getElementById('compNarrative').textContent = narrative;
+
+  let graphHtml = `<div class="spark-row"><span class="sl">Original · ${spLabel}</span><span class="sv">${shapeSpark||'—'}</span></div>`;
+  graphHtml += `<div class="spark-row"><span class="sl">You</span><span class="sv">${challengerRow}</span></div>`;
+  document.getElementById('compGraph').innerHTML = graphHtml;
+
+  // Shareable text: uses "Original"/"Challenger" throughout instead of
+  // "Them"/"You" — once this gets pasted into Discord, "You" no longer has
+  // a clear referent for anyone reading it, whereas "Challenger" reads
+  // correctly for the poster themselves AND for anyone else in the channel.
+  const sep='─────────────────────────';
+  const lines=[];
+  lines.push(sep);
+  lines.push('⚔️ CHALLENGE RESULT ⚔️');
+  lines.push(headline);
+  lines.push(`Pattern: Adaptive Sustain · ${spLabel}`);
+  lines.push('');
+  lines.push(`Original:    ${shapeSpark}  (${originalOutcomeLabel})`);
+  lines.push(`Challenger:  ${challengerRow}  (${challengerOutcomeLabel})`);
+  lines.push('');
+  lines.push(narrative);
+  lines.push(sep);
+  document.getElementById('compShareBox').textContent = lines.join('\n');
+
+  showScreen('scrChallengeCompare');
+}
+
+// ════════════════════════════════════════════
+// SUMMARY
+// ════════════════════════════════════════════
+function showSummary(){
+  if(G.challengeMode) return; // challenge completion routes through showChallengeComparison instead
+  const tot=Math.round((Date.now()-G.sessionStart)/1000);
+  const isSus=CFG.preset==='asustain';
+  const isAd=CFG.preset==='abuild'||CFG.preset==='asustain';
+  const clean=G.edges.filter(e=>!e.over).length;
+  const over=G.edges.filter(e=>e.over).length;
+  const peak=isSus ? G.peakBpmSeen : (G.edges.length?Math.max(...G.edges.map(e=>e.bpm)):G.peakBpmSeen);
+  const m=Math.floor(tot/60),s=tot%60;
+  const tStr=m>0?`${m}m ${s}s`:`${s}s`;
+  const pLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic',
+    abuild:'Adaptive: Build',asustain:'Adaptive: Sustain'}[CFG.preset]||CFG.preset;
+
+  let html=`<div class="card-title">Results</div>`;
+  if(isSus){
+    html+=`<div class="ss"><span class="l">Held on for</span><span class="v cgr">${tStr}</span></div>`;
+    if(over>0) html+=`<div class="ss"><span class="l">Went over</span><span class="v cr">Yes</span></div>`;
+    html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
+    if(G.profile&&G.profile.edgeBpm)
+      html+=`<div class="ss"><span class="l">Average speed</span><span class="v ca">${avgArr(G.bpmSamples)||G.profile.edgeBpm} bpm</span></div>`;
+    html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
+    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+    html+=`<div class="ss"><span class="l">Sub-pattern</span><span class="v">${spLabel}</span></div>`;
+  }else{
+    html+=`<div class="ss"><span class="l">Edges achieved</span><span class="v ca">${clean}</span></div>`;
+    if(over>0)html+=`<div class="ss"><span class="l">Went over</span><span class="v cr">${over}</span></div>`;
+    html+=`<div class="ss"><span class="l">Session time</span><span class="v cg">${tStr}</span></div>`;
+    html+=`<div class="ss"><span class="l">Peak speed</span><span class="v">${peak} bpm</span></div>`;
+    html+=`<div class="ss"><span class="l">Pattern</span><span class="v">${pLabel}</span></div>`;
+    // Build mode also shows the chosen sub-pattern
+    if(CFG.preset==='abuild'){
+      const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+      html+=`<div class="ss"><span class="l">Sub-pattern</span><span class="v">${spLabel}</span></div>`;
+    }
+    // Only show difficulty for non-adaptive modes
+    if(!isAd){
+      const dLabel=CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1);
+      html+=`<div class="ss"><span class="l">Difficulty</span><span class="v">${dLabel}</span></div>`;
+    }
+  }
+  document.getElementById('sumStats').innerHTML=html;
+
+  // Splits table
+  const tbl=document.getElementById('splitsT');
+  tbl.innerHTML=`<tr><th>#</th><th>Time</th><th>Speed</th><th>Result</th></tr>`;
+  if(isSus||G.edges.length===0){
+    tbl.innerHTML+=`<tr><td colspan="4" style="color:var(--muted);font-style:italic;padding:10px 3px;">
+      ${isSus?'Sustain mode — no individual edges tracked.':'No edges recorded this session.'}</td></tr>`;
+  }else{
+    G.edges.forEach((e,i)=>{
+      const em=Math.floor(e.duration/60),es=e.duration%60;
+      const d=em>0?`${em}m ${es}s`:`${es}s`;
+      const res=e.over
+        ?'<span style="color:var(--red)">Over</span>'
+        :'<span style="color:var(--green)">✓</span>';
+      tbl.innerHTML+=`<tr><td>${i+1}</td><td>${d}</td><td>${e.bpm} bpm</td><td>${res}</td></tr>`;
+    });
+  }
+
+  // Share text
+  // Uses the page's own current URL (same helper the challenge link uses)
+  // rather than a hardcoded address — correct whether accessed via the
+  // clean index.html URL, a specific filename, or a local test file.
+  const url=getBaseUrl();
+  const diffStr=!isAd?' · '+CFG.diff.charAt(0).toUpperCase()+CFG.diff.slice(1):'';
+  const sep='─────────────────────────';
+  const shareLines=[];
+
+  shareLines.push(sep);
+  shareLines.push('🎵 The Metronome Edger 🎵');
+
+  if(isSus){
+    const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+    shareLines.push(`Pattern: ${pLabel}${spLabel?' · '+spLabel:''}`);
+    const avgBpm = avgArr(G.bpmSamples);
+    const spark = makeSpark(G.bpmSamples, CFG.minBpm, CFG.maxBpm);
+    shareLines.push(`⏱ ${tStr}  ·  📈 Peak: ${peak} bpm${avgBpm?'  ·  ⌀ Avg: '+avgBpm+' bpm':''}`);
+    if(spark) shareLines.push(`Speed: ${spark}`);
+    if(over>0) shareLines.push(`⚠ Went over the edge`);
+  }else{
+    const isBuild = CFG.preset==='abuild';
+    const spLabel = isBuild ? ({waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'') : '';
+    const tail = isBuild ? (spLabel?' · '+spLabel:'') : diffStr;
+    shareLines.push(`Pattern: ${pLabel}${tail}`);
+    let statsLine=`✦ Edges: ${clean}  ·  ⏱ ${tStr}  ·  📈 Peak: ${peak} bpm`;
+    if(isBuild && G.bpmSamples.length > 0){
+      statsLine += `  ·  ⌀ Avg: ${avgArr(G.bpmSamples)} bpm`;
+    }
+    shareLines.push(statsLine);
+    // Sparkline for build mode
+    if(isBuild && G.bpmSamples.length > 1){
+      shareLines.push(`Speed: ${makeSpark(G.bpmSamples, CFG.minBpm, CFG.maxBpm)}`);
+    }
+    if(over>0) shareLines.push(`⚠ Went over the edge`);
+    if(G.edges.filter(e=>!e.over).length>0){
+      const splitParts=G.edges
+        .map((e,i)=>({e,n:i+1}))
+        .filter(({e})=>!e.over)
+        .map(({e,n})=>{
+          const em=Math.floor(e.duration/60),es=e.duration%60;
+          const d=em>0?`${em}m${es}s`:`${es}s`;
+          return `${n}. ${d} @ ${e.bpm} bpm`;
+        });
+      shareLines.push(`Splits:`);
+      splitParts.forEach(p => shareLines.push(p));
+    }
+  }
+
+  shareLines.push(url);
+  shareLines.push(sep);
+  document.getElementById('shareBox').textContent=shareLines.join('\n');
+
+  // Challenge a Friend — sustain mode only, needs at least ~30s of real data
+  const chCard = document.getElementById('challengeCard');
+  if(isSus && !G.challengeMode){
+    const chUrl = buildChallengeUrl();
+    if(chUrl){
+      const outcomeText = over>0
+        ? "They couldn't hold on the whole way and tipped over partway through. Can you make it further than they did?"
+        : "They stayed under the edge for the whole ride without tipping. Think you can do the same?";
+      const chSpark = makeSpark(bucketDown(G.bpmSamples,24), CFG.minBpm, CFG.maxBpm);
+      const chSpLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[CFG.sustainPat]||'';
+      const chLines=[];
+      chLines.push(sep);
+      chLines.push('⚔️ THE METRONOME EDGER — CHALLENGE ⚔️');
+      chLines.push(`Pattern: Adaptive Sustain${chSpLabel?' · '+chSpLabel:''}`);
+      chLines.push(`Duration: ${tStr}  ·  📈 Peak: ${peak} bpm`);
+      if(chSpark) chLines.push(`Speed: ${chSpark}`);
+      chLines.push('');
+      chLines.push(outcomeText);
+      chLines.push('No mercy button — if you tip, admit it. If you\'d rather not risk it, you can quit early.');
+      chLines.push('');
+      chLines.push('👉 Accept the challenge:');
+      chLines.push(chUrl);
+      chLines.push(sep);
+      document.getElementById('challengeBox').textContent=chLines.join('\n');
+      chCard.style.display='';
+    }else{
+      chCard.style.display='none';
+    }
+  }else{
+    chCard.style.display='none';
+  }
+
+  showScreen('scrSummary');
+  if(G.profile){G.profile.sessions=(G.profile.sessions||0)+1;saveProf();}
+}
+
+// ════════════════════════════════════════════
+// COPY — robust two-path
+// ════════════════════════════════════════════
+function doCopy(boxId){
+  const el=document.getElementById(boxId||'shareBox');
+  if(!el) return;
+  const txt=el.textContent;
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(showCopied).catch(()=>fbCopy(txt));
+  }else{fbCopy(txt);}
+}
+function fbCopy(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;
+  ta.style.cssText='position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');showCopied();}
+  catch(e){alert('Long-press the text above to copy manually.');}
+  document.body.removeChild(ta);
+}
+function showCopied(){
+  const t=document.getElementById('toast');t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function resetAll(){
+  stopMetro();
+  stopArousalEngine();
+  if(G.ciTimer){clearTimeout(G.ciTimer);G.ciTimer=null;}
+  if(G.sustainTimer){clearInterval(G.sustainTimer);G.sustainTimer=null;}
+  if(G.breakTimer){clearInterval(G.breakTimer);G.breakTimer=null;}
+  if(G.challengeUITimer){clearInterval(G.challengeUITimer);G.challengeUITimer=null;}
+  G.challengeMode = false;
+  G.ciOpen = false; document.getElementById('ciO').classList.remove('show');
+  showScreen('scrWelcome');
+}
+
+// Called specifically from the challenge comparison screen's "back to game"
+// button. Resets CFG.preset to a sane default so the welcome screen's visual
+// selection (Waves, shown by default) matches CFG state — otherwise a
+// leftover CFG.preset='asustain' from challenge mode could silently start
+// an adaptive session if the player hits Begin Session without picking first.
+function challengeBackToGame(){
+  CFG.preset = 'waves';
+  CFG.sustainPat = 'waves';
+  resetAll();
+}
+
+// ── INIT ──────────────────────────────────────
+
+// Populates the Challenge Invite screen from decoded challenge data.
+// Outcome is deliberately NOT shown here — revealed only after the
+// challenger completes their own attempt, on the comparison screen.
+function populateChallengeInvite(data){
+  const spLabel={waves:'Waves',slowburn:'Slow Burn',pulse:'Pulse',erratic:'Erratic'}[data.sp]||'';
+  const totalSecs = data.blocks.reduce((sum,b)=>sum+b.secs, 0);
+  const m=Math.floor(totalSecs/60), s=totalSecs%60;
+  const durStr = m>0?`${m}m ${s}s`:`${s}s`;
+
+  document.getElementById('chInvitePattern').textContent = 'Adaptive Sustain' + (spLabel?' · '+spLabel:'');
+  document.getElementById('chInviteDuration').textContent = durStr;
+  document.getElementById('chInvitePeak').textContent = data.peak + ' bpm';
+
+  const bucketed = bucketDown(data.samples, 24);
+  const spark = makeSpark(bucketed, data.mn, data.mx);
+  document.getElementById('chInviteSpark').textContent = spark || '—';
+}
+
+(function(){
+  document.querySelectorAll('input[type=range]').forEach(el=>{
+    el.style.setProperty('--pct',((el.value-el.min)/(el.max-el.min)*100)+'%');
+  });
+  document.getElementById('pInfo').textContent=PINFO['waves'];
+  document.getElementById('dInfo').textContent=DINFO['medium'];
+
+  // Check for a challenge link — if present and valid, show the invite
+  // screen instead of the normal welcome screen. Any failure (missing
+  // param, malformed data) falls through silently to the normal welcome
+  // screen so a broken link never leaves the player stuck.
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const chParam = params.get('challenge');
+    if(chParam){
+      const decoded = decodeChallengeParam(chParam);
+      if(decoded){
+        G.challengeData = decoded;
+        populateChallengeInvite(decoded);
+        showScreen('scrChallengeInvite');
+      }
+    }
+  }catch(e){
+    // Malformed URL or decode error — fall through to normal welcome screen
+  }
+})();
+</script>
+</body>
+</html>
